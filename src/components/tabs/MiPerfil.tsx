@@ -37,6 +37,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccessLevel, type AccessLevel } from "@/hooks/useAccessLevel";
@@ -85,7 +92,7 @@ export function MiPerfil() {
   const { data: mirrorResults, isLoading: mirrorLoading } = useMirrorResults(user?.id, 5);
 
   // Edit state
-  const [editing, setEditing] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
@@ -98,6 +105,10 @@ export function MiPerfil() {
     bio: "",
     website: "",
     linkedin: "",
+    ofrece: "",
+    busca: "",
+    sector: "",
+    empresa_tamano: "",
   });
 
   // Collapsible sections
@@ -117,6 +128,10 @@ export function MiPerfil() {
         bio: profile.bio || "",
         website: profile.website || "",
         linkedin: profile.linkedin || "",
+        ofrece: profile.ofrece || "",
+        busca: profile.busca || "",
+        sector: profile.sector || "",
+        empresa_tamano: profile.empresa_tamano || "",
       });
     }
   }, [profile]);
@@ -125,8 +140,8 @@ export function MiPerfil() {
     if (!user || saving) return;
     setSaving(true);
 
-    const { error } = await supabase
-      .from("profiles")
+    // Columnas nuevas (migración 20260520) incluidas con cast — actualizar con `supabase gen types`
+    const { error } = await (supabase.from("profiles") as any)
       .update({
         nombre: form.nombre.trim() || null,
         apellido: form.apellido.trim() || null,
@@ -138,6 +153,10 @@ export function MiPerfil() {
         bio: form.bio.trim() || null,
         website: form.website.trim() || null,
         linkedin: form.linkedin.trim() || null,
+        ofrece: form.ofrece.trim() || null,
+        busca: form.busca.trim() || null,
+        sector: form.sector || null,
+        empresa_tamano: form.empresa_tamano || null,
       })
       .eq("user_id", user.id);
 
@@ -145,7 +164,7 @@ export function MiPerfil() {
       toast({ title: "Error", description: "No se pudo guardar el perfil.", variant: "destructive" });
     } else {
       toast({ title: "Perfil actualizado" });
-      setEditing(false);
+      setDialogOpen(false);
       refetchProfile();
     }
     setSaving(false);
@@ -164,9 +183,13 @@ export function MiPerfil() {
         bio: profile.bio || "",
         website: profile.website || "",
         linkedin: profile.linkedin || "",
+        ofrece: profile.ofrece || "",
+        busca: profile.busca || "",
+        sector: profile.sector || "",
+        empresa_tamano: profile.empresa_tamano || "",
       });
     }
-    setEditing(false);
+    setDialogOpen(false);
   };
 
   if (profileLoading) {
@@ -272,183 +295,195 @@ export function MiPerfil() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Mis datos</CardTitle>
-            {!editing ? (
-              <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="gap-1.5 h-8 text-xs">
-                <Edit3 className="w-3.5 h-3.5" />
-                Editar
-              </Button>
-            ) : (
-              <div className="flex gap-1">
-                <Button size="sm" variant="ghost" onClick={cancelEdit} className="h-8 text-xs">
-                  <X className="w-3.5 h-3.5 mr-1" />
-                  Cancelar
-                </Button>
-                <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 text-xs">
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
-                  Guardar
-                </Button>
-              </div>
-            )}
+            <Button size="sm" variant="ghost" onClick={() => setDialogOpen(true)} className="gap-1.5 h-8 text-xs">
+              <Edit3 className="w-3.5 h-3.5" />
+              Editar perfil
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {editing ? (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Nombre</Label>
-                  <Input
-                    value={form.nombre}
-                    onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
-                    className="h-9 text-sm"
-                    placeholder="Tu nombre"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Apellido</Label>
-                  <Input
-                    value={form.apellido}
-                    onChange={(e) => setForm((f) => ({ ...f, apellido: e.target.value }))}
-                    className="h-9 text-sm"
-                    placeholder="Tu apellido"
-                  />
-                </div>
+          <div className="space-y-3">
+            <InfoRow icon={<User className="w-4 h-4" />} label="Nombre" value={[profile?.nombre, profile?.apellido].filter(Boolean).join(" ")} />
+            <InfoRow icon={<Building2 className="w-4 h-4" />} label="Empresa" value={profile?.empresa} />
+            <InfoRow icon={<Briefcase className="w-4 h-4" />} label="Cargo" value={profile?.cargo} />
+            {profile?.nickname && <InfoRow icon={<User className="w-4 h-4" />} label="Nickname" value={`@${profile.nickname}`} />}
+            {profile?.whatsapp && <InfoRow icon={<Phone className="w-4 h-4" />} label="WhatsApp" value={profile.whatsapp} />}
+            {profile?.birthday && <InfoRow icon={<Calendar className="w-4 h-4" />} label="Nacimiento" value={formatDate(profile.birthday)} />}
+            {profile?.bio && (
+              <div className="pt-1">
+                <p className="text-xs text-muted-foreground mb-1">Bio</p>
+                <p className="text-sm text-foreground">{profile.bio}</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-muted-foreground" />
-                    Empresa
-                  </Label>
-                  <Input
-                    value={form.empresa}
-                    onChange={(e) => setForm((f) => ({ ...f, empresa: e.target.value }))}
-                    className="h-9 text-sm"
-                    placeholder="Tu empresa"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Briefcase className="w-3 h-3 text-muted-foreground" />
-                    Cargo
-                  </Label>
-                  <Input
-                    value={form.cargo}
-                    onChange={(e) => setForm((f) => ({ ...f, cargo: e.target.value }))}
-                    className="h-9 text-sm"
-                    placeholder="Tu cargo"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Nickname</Label>
-                  <Input
-                    value={form.nickname}
-                    onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value.slice(0, 20) }))}
-                    className="h-9 text-sm"
-                    placeholder="Tu apodo"
-                  />
-                  <p className="text-[10px] text-muted-foreground">Visible en el muro (N1/N2)</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-muted-foreground" />
-                    WhatsApp
-                  </Label>
-                  <Input
-                    value={form.whatsapp}
-                    onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
-                    className="h-9 text-sm"
-                    placeholder="+54 9 11 ..."
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-muted-foreground" />
-                  Fecha de nacimiento
-                </Label>
-                <Input
-                  type="date"
-                  value={form.birthday}
-                  onChange={(e) => setForm((f) => ({ ...f, birthday: e.target.value }))}
-                  className="h-9 text-sm"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Bio</Label>
-                <Textarea
-                  value={form.bio}
-                  onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value.slice(0, 300) }))}
-                  rows={3}
-                  className="resize-none text-sm"
-                  placeholder="Contá un poco sobre vos..."
-                />
-                <p className="text-[10px] text-muted-foreground text-right">{form.bio.length}/300</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Globe className="w-3 h-3 text-muted-foreground" />
-                    Website
-                  </Label>
-                  <Input
-                    value={form.website}
-                    onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
-                    className="h-9 text-sm"
-                    placeholder="https://tu-negocio.com"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Linkedin className="w-3 h-3 text-muted-foreground" />
-                    LinkedIn
-                  </Label>
-                  <Input
-                    value={form.linkedin}
-                    onChange={(e) => setForm((f) => ({ ...f, linkedin: e.target.value }))}
-                    className="h-9 text-sm"
-                    placeholder="https://linkedin.com/in/..."
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="space-y-3">
-              <InfoRow icon={<User className="w-4 h-4" />} label="Nombre" value={[profile?.nombre, profile?.apellido].filter(Boolean).join(" ")} />
-              <InfoRow icon={<Building2 className="w-4 h-4" />} label="Empresa" value={profile?.empresa} />
-              <InfoRow icon={<Briefcase className="w-4 h-4" />} label="Cargo" value={profile?.cargo} />
-              {profile?.nickname && <InfoRow icon={<User className="w-4 h-4" />} label="Nickname" value={`@${profile.nickname}`} />}
-              {profile?.whatsapp && <InfoRow icon={<Phone className="w-4 h-4" />} label="WhatsApp" value={profile.whatsapp} />}
-              {profile?.birthday && <InfoRow icon={<Calendar className="w-4 h-4" />} label="Nacimiento" value={formatDate(profile.birthday)} />}
-              {profile?.bio && (
-                <div className="pt-1">
-                  <p className="text-xs text-muted-foreground mb-1">Bio</p>
-                  <p className="text-sm text-foreground">{profile.bio}</p>
-                </div>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {profile?.website && (
+                <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline">
+                  <Globe className="w-3.5 h-3.5" /> Website
+                </a>
               )}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {profile?.website && (
-                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline">
-                    <Globe className="w-3.5 h-3.5" /> Website
-                  </a>
-                )}
-                {profile?.linkedin && (
-                  <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline">
-                    <Linkedin className="w-3.5 h-3.5" /> LinkedIn
-                  </a>
-                )}
-              </div>
+              {profile?.linkedin && (
+                <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline">
+                  <Linkedin className="w-3.5 h-3.5" /> LinkedIn
+                </a>
+              )}
             </div>
-          )}
+            {(profile?.ofrece || profile?.busca || profile?.sector) && (
+              <>
+                <Separator />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tu perfil en la Red</p>
+                {profile?.sector && <InfoRow icon={<Briefcase className="w-4 h-4" />} label="Sector" value={profile.sector} />}
+                {profile?.ofrece && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Ofrecés</p>
+                    <p className="text-sm text-foreground">{profile.ofrece}</p>
+                  </div>
+                )}
+                {profile?.busca && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Buscás</p>
+                    <p className="text-sm text-foreground">{profile.busca}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      {/* ── Modal de edición de perfil ── */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) cancelEdit(); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar perfil</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Sección Red */}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tu presencia en la Red</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Sector</Label>
+                <select
+                  value={form.sector}
+                  onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))}
+                  className="w-full h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Sin especificar</option>
+                  {["Agro / Alimentos","Construcción / Real Estate","Consultoría","Educación","Finanzas / Inversiones","Industria / Manufactura","Retail / Comercio","Salud","Tecnología","Transporte / Logística","Otro"].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tamaño empresa</Label>
+                <select
+                  value={form.empresa_tamano}
+                  onChange={(e) => setForm((f) => ({ ...f, empresa_tamano: e.target.value }))}
+                  className="w-full h-9 text-sm rounded-md border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Sin especificar</option>
+                  {["1-10","10-50","50-200","200+"].map((t) => (
+                    <option key={t} value={t}>{t} empleados</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">¿Qué podés aportar a la Red?</Label>
+              <Textarea
+                value={form.ofrece}
+                onChange={(e) => setForm((f) => ({ ...f, ofrece: e.target.value.slice(0, 300) }))}
+                rows={3}
+                className="resize-none text-sm"
+                placeholder="Ej: Experiencia en finanzas, contactos en el sector agro..."
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{form.ofrece.length}/300</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">¿Qué estás buscando?</Label>
+              <Textarea
+                value={form.busca}
+                onChange={(e) => setForm((f) => ({ ...f, busca: e.target.value.slice(0, 300) }))}
+                rows={3}
+                className="resize-none text-sm"
+                placeholder="Ej: Socios para expandir a Brasil, clientes en retail..."
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{form.busca.length}/300</p>
+            </div>
+
+            <Separator />
+
+            {/* Sección datos personales */}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Datos personales</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nombre</Label>
+                <Input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} className="h-9 text-sm" placeholder="Tu nombre" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Apellido</Label>
+                <Input value={form.apellido} onChange={(e) => setForm((f) => ({ ...f, apellido: e.target.value }))} className="h-9 text-sm" placeholder="Tu apellido" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Empresa</Label>
+                <Input value={form.empresa} onChange={(e) => setForm((f) => ({ ...f, empresa: e.target.value }))} className="h-9 text-sm" placeholder="Tu empresa" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cargo</Label>
+                <Input value={form.cargo} onChange={(e) => setForm((f) => ({ ...f, cargo: e.target.value }))} className="h-9 text-sm" placeholder="Tu cargo" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nickname</Label>
+                <Input value={form.nickname} onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value.slice(0, 20) }))} className="h-9 text-sm" placeholder="Tu apodo" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1"><Phone className="w-3 h-3 text-muted-foreground" />WhatsApp</Label>
+                <Input value={form.whatsapp} onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))} className="h-9 text-sm" placeholder="+54 9 11 ..." />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1"><Calendar className="w-3 h-3 text-muted-foreground" />Fecha de nacimiento</Label>
+              <Input type="date" value={form.birthday} onChange={(e) => setForm((f) => ({ ...f, birthday: e.target.value }))} className="h-9 text-sm" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Bio</Label>
+              <Textarea value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value.slice(0, 300) }))} rows={3} className="resize-none text-sm" placeholder="Contá un poco sobre vos..." />
+              <p className="text-[10px] text-muted-foreground text-right">{form.bio.length}/300</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1"><Globe className="w-3 h-3 text-muted-foreground" />Website</Label>
+                <Input value={form.website} onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))} className="h-9 text-sm" placeholder="https://tu-negocio.com" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1"><Linkedin className="w-3 h-3 text-muted-foreground" />LinkedIn</Label>
+                <Input value={form.linkedin} onChange={(e) => setForm((f) => ({ ...f, linkedin: e.target.value }))} className="h-9 text-sm" placeholder="https://linkedin.com/in/..." />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={cancelEdit} disabled={saving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving} className="gap-1.5">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Business Mirror Gamer — Resultados ── */}
       {level !== "N0" && (
