@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-PWA para líderes empresariales argentinos. Stack: React 18 + TypeScript + Vite + Supabase + Tailwind CSS. Versión: **v1.0.0** (2026-05-19).
+PWA para líderes empresariales argentinos. Stack: React 18 + TypeScript + Vite + Supabase + Tailwind CSS. Versión: **v1.1.0** (2026-05-20).
 
 ---
 
@@ -37,7 +37,7 @@ Pages (6, lazy-loaded)
 - `src/App.tsx` — rutas con lazy-loading y `RouteErrorBoundary` por ruta
 - `src/components/Providers.tsx` — 7+ providers (Auth, Query, Theme, I18n, etc.)
 
-**Páginas:** `/` (Index), `/splash`, `/auth`, `/reset-password`, `/admin`, `*` (NotFound).
+**Páginas:** `/` (Index), `/splash`, `/auth`, `/reset-password`, `/admin`, `/onboarding`, `*` (NotFound).
 
 **Estado:**
 - Server state → React Query (`staleTime: 2min`, `retry: 1`)
@@ -76,6 +76,40 @@ Para cambiar a freemium: editar `CURRENT_PLAN_ID = "freemium"` en `plans.ts`.
 **Componente:** `<FeatureGate feature="diagnostic_pdf">` — usa `hasFeature()` del plan activo.
 
 > **Regla:** usar `<AccessGate>` para restringir por membresía. Usar `<FeatureGate>` para restringir por feature flag. No mezclar.
+
+---
+
+## Red de líderes y Onboarding obligatorio
+
+### Onboarding guard (`/onboarding`)
+
+Usuarios nuevos con `mirror_completed = false` son redirigidos a `/onboarding` desde `Index.tsx` antes de ver cualquier contenido (excepto ADMIN). El guard vive en `src/pages/Index.tsx`, no en el router.
+
+**Flujo:** Diagnóstico Mirror (8 preguntas) → pantalla `red-step` con textareas ofrece/busca → CTA "Entrar a la Red" → UPDATE profiles (`mirror_completed + ofrece + busca`) → navega a `/` con `state: { initialTab: "red" }`.
+
+Archivo: `src/pages/Onboarding.tsx`. Props relevantes de `DiagnosticTest`: `onProgress?(step, currentIdx, total)` para la barra de progreso dinámica.
+
+Usuarios con `has_completed_diagnostic = true` previo a la migración quedan con `mirror_completed = true` automáticamente (ver migración `20260520000000_profile_red_columns.sql`).
+
+### Tab Red (`src/components/tabs/RedTab.tsx`)
+
+Directorio de líderes. Query: `profiles WHERE visible_en_red = true AND mirror_completed = true`. Filtros client-side por texto, sector y empresa_tamano. Cards muestran nombre, empresa, sector (badge), ofrece/busca truncados. Banner suave si el usuario propio tiene ofrece/busca vacíos.
+
+Tab activa en BottomNav reemplazando a Muro (ícono `Users`). El Muro sigue siendo renderable como tab pero no está en la nav principal.
+
+### Columnas nuevas en `profiles` (migración 20260520)
+
+`mirror_completed boolean DEFAULT false`, `ofrece text`, `busca text`, `sector text`, `empresa_tamano text CHECK IN ('1-10','10-50','50-200','200+')`, `visible_en_red boolean DEFAULT true`.
+
+> ⚠️ Los tipos de Supabase (`src/integrations/supabase/types.ts`) todavía no conocen estas columnas. Hasta regenerar con `supabase gen types typescript --project-id=<id>`, el código usa casts `as unknown as T` y `as any` en los puntos de acceso a estas columnas. No agregar más `as any` sin este comentario explicativo.
+
+### Perfil editable — Modal
+
+`MiPerfil.tsx` usa `Dialog` de shadcn para editar. El form incluye los 4 campos nuevos (sector, empresa_tamano, ofrece, busca) como primera sección "Tu presencia en la Red", seguido de los datos personales existentes.
+
+### Seed de demo
+
+`supabase/seed_red.sql` — 6 perfiles ficticios de founders argentinos con todos los campos completos. Contraseña `Demo1234!`. Idempotente via `ON CONFLICT DO UPDATE`. Correr desde SQL Editor de Supabase Dashboard.
 
 ---
 
@@ -139,7 +173,7 @@ Opcionales: `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN`, `VITE_VAPID_PUBLIC_KEY`.
 - Tipos auto-generados: `src/integrations/supabase/types.ts` — **no editar a mano**
 - Edge Functions: `supabase/functions/` — se despliegan con `deploy-functions.yml`
 
-Tablas relevantes: `profiles` (access_level, nickname, membership_expires_at), `payments`, `mentor_conversations`, `mentor_messages`.
+Tablas relevantes: `profiles` (access_level, nickname, membership_expires_at, mirror_completed, ofrece, busca, sector, empresa_tamano, visible_en_red), `payments`, `mentor_conversations`, `mentor_messages`, `diagnostic_results`.
 
 ---
 
