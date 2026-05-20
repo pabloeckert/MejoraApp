@@ -84,7 +84,7 @@ const AdminContenido = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   // Ensure default content categories exist
   useEffect(() => {
