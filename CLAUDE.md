@@ -1,6 +1,8 @@
-# CLAUDE.md — MejoraApp
+# CLAUDE.md
 
-Guía de referencia rápida para Claude Code. Versión actual: **v1.0.0** (2026-05-19).
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+PWA para líderes empresariales argentinos. Stack: React 18 + TypeScript + Vite + Supabase + Tailwind CSS. Versión: **v1.0.0** (2026-05-19).
 
 ---
 
@@ -10,10 +12,11 @@ Guía de referencia rápida para Claude Code. Versión actual: **v1.0.0** (2026-
 npm run dev             # Dev server → http://localhost:8080
 npm run build           # Build de producción → dist/
 npm run lint            # ESLint (debe terminar con 0 warnings)
-npm run test            # Vitest una sola pasada (276 tests)
+npm run test            # Vitest una sola pasada
 npm run test:coverage   # Vitest con reporte de cobertura
 npm run test:e2e        # Playwright headless
 npx tsc --noEmit        # Type-check sin build
+npx vitest run src/test/nombre.test.ts  # Un solo test
 npx vercel --prod --yes # Deploy a producción (si CI falla)
 ```
 
@@ -21,27 +24,73 @@ npx vercel --prod --yes # Deploy a producción (si CI falla)
 
 ## Arquitectura
 
-PWA para líderes empresariales argentinos. Stack: React 18 + TypeScript + Vite + Supabase + Tailwind CSS.
-
 ```
 Pages (6, lazy-loaded)
   └─ Components (~100, por dominio: admin/ auth/ diagnostic/ home/ mentor/ mirror/ muro/ community/ tabs/ ui/)
-       └─ Hooks (16 custom, wrappean servicios con React Query)
+       └─ Hooks (17 custom, wrappean servicios con React Query)
             └─ Services (5 módulos: wall / content / diagnostic / business-mirror / tiendup)
                  └─ Supabase (Auth, DB, Realtime, Edge Functions)
 ```
 
 **Entry points:**
 - `src/main.tsx` — Sentry, PostHog, Service Worker
-- `src/App.tsx` — rutas con lazy-loading
-- `src/components/Providers.tsx` — 7+ providers
+- `src/App.tsx` — rutas con lazy-loading y `RouteErrorBoundary` por ruta
+- `src/components/Providers.tsx` — 7+ providers (Auth, Query, Theme, I18n, etc.)
 
 **Páginas:** `/` (Index), `/splash`, `/auth`, `/reset-password`, `/admin`, `*` (NotFound).
 
 **Estado:**
 - Server state → React Query (`staleTime: 2min`, `retry: 1`)
-- Client state → Contexts (AuthContext, ThemeContext, I18nContext)
+- Client state → Contexts (`AuthContext`, `ThemeContext`, `I18nContext`)
 - Local state → localStorage
+
+---
+
+## Control de acceso — dos capas independientes
+
+### Capa 1: Nivel de membresía (N0/N1/N2/ADMIN)
+
+El perfil del usuario en Supabase tiene un campo `access_level` con el enum `AccessLevel`:
+
+| Nivel | Descripción |
+|-------|-------------|
+| `N0`  | Free — usuario registrado sin membresía paga |
+| `N1`  | Miembro — ARS 50.000/mes o USD 20/mes |
+| `N2`  | Círculo Dorado — ARS 150.000/mes o USD 100/mes |
+| `ADMIN` | Administrador — acceso total |
+
+**Hook:** `useAccessLevel(userId)` → `{ level, hasAccess(required), isAdmin, isExpired }` — cachea 5 min.
+
+**Componente:** `<AccessGate required="N1">` — muestra `UpgradePrompt` si el nivel es insuficiente. Acepta `blur` para difuminar el contenido en vez de ocultarlo.
+
+### Capa 2: Feature flags (FeatureId)
+
+`src/lib/plans.ts` define qué features están habilitadas según el plan activo.
+
+**Plan actual:** `CURRENT_PLAN_ID = "all_free"` — todas las features habilitadas, sin fricción.
+
+Para cambiar a freemium: editar `CURRENT_PLAN_ID = "freemium"` en `plans.ts`.
+
+**Hook:** `useFeatureAccess(featureId)` → `{ hasAccess, trackBlocked, trackUpgradePromptShown }`.
+
+**Componente:** `<FeatureGate feature="diagnostic_pdf">` — usa `hasFeature()` del plan activo.
+
+> **Regla:** usar `<AccessGate>` para restringir por membresía. Usar `<FeatureGate>` para restringir por feature flag. No mezclar.
+
+---
+
+## Modo Mentor IA
+
+El chat con el Mentor IA funciona mediante SSE (Server-Sent Events) contra una Edge Function de Supabase.
+
+**Edge Function:** `supabase/functions/mentor-chat-stream` — recibe `{ message, conversationId }`, devuelve un stream SSE con chunks `{ chunk }`, `{ conversationId }` y `{ done, model }`.
+
+**Hook:** `useMentorChat(options?)` en `src/hooks/useMentor.ts`:
+- Añade mensajes optimistas al instante
+- Consume el stream con `ReadableStream` / `AbortController`
+- Persistencia en tablas `mentor_conversations` y `mentor_messages`
+
+**Hook auxiliar:** `useMentorConversations()` — lista el historial (soft-delete con `is_active: false`).
 
 ---
 
@@ -58,24 +107,16 @@ Los colores de marca viven en `src/index.css` como variables CSS. **No usar hex 
 ```
 
 Usarlos en Tailwind como `text-brand-azul`, `bg-brand-rojo`, etc. (definidos en `tailwind.config.ts`).
-O en inline styles: `hsl(var(--brand-azul))`.
+`src/lib/brand.ts` exporta `brand.*` (valores `hsl(...)`) y `MEMBERSHIP_CONFIG` (labels/precios/beneficios por nivel).
 
-Los semánticos (`--primary`, `--accent`, `--destructive`, `--foreground`, `--muted-foreground`) apuntan a los brand tokens.
-
-**Archivo:** `src/lib/brand.ts` exporta `brand.*` y `MEMBERSHIP_CONFIG`.
-
-**Logo:** `src/assets/logo.svg` (isotipo Miró-esque).
-
-**Tipografía:**
-- Body: `Bw Modelica` (woff2 en `/public/fonts/`)
-- Display/headings: `League Spartan`
+**Tipografía:** Body → `Bw Modelica` (woff2 en `/public/fonts/`). Display/headings → `League Spartan`.
 
 ---
 
 ## Foco de producto: Mirror Estratégico es el CTA primario
 
-- `HomeDashboard` — tiene una hero card azul visible para todos los niveles que lleva a `tab: "diagnostico"`
-- `BottomNav` — botón circular central brand-azul para el tab Mirror; muestra indicador rojo si el usuario no hizo diagnóstico
+- `HomeDashboard` — hero card azul visible para todos los niveles, lleva a `tab: "diagnostico"`
+- `BottomNav` — botón circular central brand-azul para el tab Mirror; indicador rojo si no hay diagnóstico
 - Al completar el onboarding (`ProfileCompleteModal.onComplete`) → navega al tab `"diagnostico"`
 
 ---
@@ -86,10 +127,7 @@ Los semánticos (`--primary`, `--accent`, `--destructive`, `--foreground`, `--mu
 cp .env.example .env.local
 ```
 
-Requeridas:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_ENVIRONMENT` (`development` | `staging` | `production`)
+Requeridas: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_ENVIRONMENT` (`development` | `staging` | `production`).
 
 Opcionales: `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN`, `VITE_VAPID_PUBLIC_KEY`.
 
@@ -101,73 +139,35 @@ Opcionales: `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN`, `VITE_VAPID_PUBLIC_KEY`.
 - Tipos auto-generados: `src/integrations/supabase/types.ts` — **no editar a mano**
 - Edge Functions: `supabase/functions/` — se despliegan con `deploy-functions.yml`
 
+Tablas relevantes: `profiles` (access_level, nickname, membership_expires_at), `payments`, `mentor_conversations`, `mentor_messages`.
+
 ---
 
 ## Testing
 
 - Unitarios: Vitest + jsdom. Setup en `src/test/setup.ts`. Umbrales: 70% branches, 25% resto.
 - E2E: Playwright. Targets: Desktop Chrome + Pixel 5. No en paralelo.
-- Un test: `npx vitest run src/test/nombre.test.ts`
 
 ---
 
 ## CI/CD y deploy
 
-### GitHub Actions (`deploy.yml`)
-Push a `main` → corre tests → build → `npx vercel --prod`.
+Push a `main` → tests → build → `npx vercel --prod` (GitHub Actions `deploy.yml`).
 
-**Requiere estos secrets en GitHub** (Settings → Secrets → Actions):
+**Secrets requeridos en GitHub:**
 
 | Secret | Valor |
 |--------|-------|
-| `VERCEL_TOKEN` | Crear en vercel.com/account/tokens |
+| `VERCEL_TOKEN` | vercel.com/account/tokens |
 | `VERCEL_ORG_ID` | `team_7IpSKP23kMLFwShzU7WfcsYj` |
 | `VERCEL_PROJECT_ID` | `prj_QD34lzAB0hpVuSMBizHJZC87JwaN` |
 | `VITE_SUPABASE_URL` | URL del proyecto Supabase |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key |
 | `VITE_SUPABASE_PROJECT_ID` | ID del proyecto |
 
-> ⚠️ Hasta que `VERCEL_TOKEN` esté configurado, el CI falla en el paso de deploy.
-> Workaround: `npx vercel --prod --yes` desde local (ya estás autenticado).
+> ⚠️ Sin `VERCEL_TOKEN`, el CI falla en deploy. Workaround: `npx vercel --prod --yes` desde local.
 
-### Deploy manual
-```bash
-npx vercel --prod --yes
-```
-
-### Producción
-- URL: `https://app.mejoraok.com`
-- `mejoraapp.vercel.app` → redirige 308 a `app.mejoraok.com` (configurado en `vercel.json`)
-
----
-
-## Estructura de archivos notables
-
-```
-/
-├── src/
-│   ├── assets/logo.svg          # Isotipo de marca
-│   ├── index.css                # Variables CSS de marca (--brand-*)
-│   ├── lib/brand.ts             # Constantes de marca y MEMBERSHIP_CONFIG
-│   ├── components/
-│   │   ├── BottomNav.tsx        # Nav con tab Mirror central
-│   │   ├── home/HomeDashboard   # Hero card Mirror Estratégico
-│   │   └── ProfileCompleteModal # Onboarding → redirige a diagnóstico
-│   └── data/
-│       ├── diagnosticData.ts    # Perfiles del Mirror (PERFILES, PREGUNTAS)
-│       └── businessMirrorTests.ts # Tests del Business Mirror Game
-├── public/
-│   ├── manifest.json            # PWA: name "Mejora Continua"
-│   ├── sw.js                    # Service Worker v5
-│   ├── offline.html             # Fallback offline
-│   └── favicon.svg              # Ícono actualizado con marca
-├── docs/                        # Documentación interna (no código)
-│   ├── CLAUDE.md                # Versión anterior (archivada)
-│   ├── CTO-SESSION.md           # Historial de decisiones
-│   └── ...
-├── vercel.json                  # Headers seguridad + redirect mejoraapp.vercel.app
-└── CLAUDE.md                    # Este archivo
-```
+**Producción:** `https://app.mejoraok.com` (`mejoraapp.vercel.app` redirige 308 a ese dominio via `vercel.json`).
 
 ---
 
