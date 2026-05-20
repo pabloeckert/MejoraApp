@@ -19,6 +19,7 @@ import {
   TrendingUp,
   ClipboardList,
   ArrowUpRight,
+  ArrowRight,
 } from "lucide-react";
 
 interface QuickAction {
@@ -88,6 +89,20 @@ export function HomeDashboard({ onNavigate }: HomeDashboardProps) {
           {GREETING[level] ?? GREETING.n0}
         </p>
       </div>
+
+      {/* Mirror Estratégico — CTA primario */}
+      <button
+        onClick={() => onNavigate("diagnostico")}
+        className="w-full rounded-2xl p-5 text-left transition-transform active:scale-98 flex items-center justify-between gap-4"
+        style={{ background: 'hsl(var(--brand-azul))', minHeight: 96 }}
+      >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-1">Mirror Estratégico</p>
+          <p className="text-lg font-bold text-white leading-tight">Diagnosticá tu negocio</p>
+          <p className="text-sm text-white/80 mt-0.5">Descubrí dónde está el freno real.</p>
+        </div>
+        <ArrowRight className="w-6 h-6 text-white shrink-0" />
+      </button>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
