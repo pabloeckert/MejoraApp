@@ -20,7 +20,7 @@ interface UpgradePromptProps {
 
 const LEVEL_INFO: Record<AccessLevel, { label: string; icon: typeof Lock; color: string; productEnvKey?: string }> = {
   N0: { label: "Gratis", icon: Lock, color: "text-muted-foreground" },
-  N1: { label: "Básico", icon: Star, color: "text-blue-500", productEnvKey: "VITE_TIENDUP_PRODUCT_N1" },
+  N1: { label: "Básico", icon: Star, color: "text-primary", productEnvKey: "VITE_TIENDUP_PRODUCT_N1" },
   N2: { label: "Premium", icon: Crown, color: "text-amber-500", productEnvKey: "VITE_TIENDUP_PRODUCT_N2" },
   ADMIN: { label: "Admin", icon: Crown, color: "text-red-500" },
 };

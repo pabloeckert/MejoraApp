@@ -82,7 +82,7 @@ const getTypeBadge = (type: string) => {
     case "book":
       return { label: "Libro PDF", icon: BookOpen, color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" };
     default:
-      return { label: "Artículo", icon: FileText, color: "bg-blue-500/15 text-blue-600 dark:text-blue-400" };
+      return { label: "Artículo", icon: FileText, color: "bg-primary/15 text-primary" };
   }
 };
 

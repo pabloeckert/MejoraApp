@@ -1,5 +1,5 @@
-const CACHE_NAME = "mejoraapp-v4";
-const STATIC_ASSETS = ["/", "/index.html"];
+const CACHE_NAME = "mejoraapp-v5";
+const STATIC_ASSETS = ["/", "/index.html", "/offline.html"];
 
 // Assets to pre-cache on install
 const PRECACHE_URLS = STATIC_ASSETS;
@@ -39,7 +39,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
           return res;
         })
-        .catch(() => caches.match("/") || caches.match("/index.html"))
+        .catch(() => caches.match("/offline.html") || caches.match("/") || caches.match("/index.html"))
     );
     return;
   }
