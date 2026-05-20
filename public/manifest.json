@@ -1,12 +1,12 @@
 {
-  "name": "MejoraApp - Comunidad de Negocios",
-  "short_name": "MejoraApp",
-  "description": "Comunidad de negocios con contenido de valor, networking y herramientas para hacer crecer tu empresa.",
+  "name": "Mejora Continua",
+  "short_name": "Mejora",
+  "description": "Mirror Estratégico y comunidad de líderes empresariales argentinos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#fafafa",
-  "theme_color": "#0505a6",
+  "background_color": "#FFFFFF",
+  "theme_color": "#495F93",
   "orientation": "portrait-primary",
   "categories": ["business", "productivity", "social"],
   "lang": "es",
@@ -16,13 +16,24 @@
       "src": "/favicon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/favicon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
   "shortcuts": [
@@ -30,14 +41,14 @@
       "name": "Mirror Estratégico",
       "short_name": "Mirror",
       "description": "Hacé el diagnóstico de tu negocio",
-      "url": "/?tab=diagnostico",
+      "url": "/mirror",
       "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
     },
     {
-      "name": "Muro Anónimo",
-      "short_name": "Muro",
-      "description": "Compartí experiencias con la comunidad",
-      "url": "/?tab=muro",
+      "name": "Mentor IA",
+      "short_name": "Mentor",
+      "description": "Consultá con tu mentor estratégico con IA",
+      "url": "/mentor",
       "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
     }
   ]

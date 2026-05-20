@@ -79,11 +79,11 @@ export default {
           "diag-yellow": "hsl(var(--mc-diag-yellow))",
         },
         brand: {
-          black:  '#0D0D0D',
-          red:    '#D9072D',
-          navy:   '#020659',
-          blue:   '#1C4D8C',
-          yellow: '#F2BB16',
+          azul:    'hsl(var(--brand-azul))',
+          rojo:    'hsl(var(--brand-rojo))',
+          amarillo:'hsl(var(--brand-amarillo))',
+          gris:    'hsl(var(--brand-gris))',
+          negro:   'hsl(var(--brand-negro))',
         },
         surface: {
           DEFAULT: '#111118',

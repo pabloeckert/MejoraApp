@@ -381,7 +381,7 @@ const AdminUsuarios = () => {
                             (p as ExtendedProfile & { membership_level?: string }).membership_level === "n2"
                               ? "text-amber-500"
                               : (p as ExtendedProfile & { membership_level?: string }).membership_level === "n1"
-                              ? "text-blue-500"
+                              ? "text-primary"
                               : "text-muted-foreground"
                           }`}>
                             {(p as ExtendedProfile & { membership_level?: string }).membership_level?.toUpperCase() ?? (p.access_level ?? "N0")}
@@ -622,7 +622,7 @@ const AdminUsuarios = () => {
                         activateForm.level === lvl
                           ? lvl === "n2"
                             ? "bg-amber-500/10 border-amber-500 text-amber-500"
-                            : "bg-blue-500/10 border-blue-500 text-blue-500"
+                            : "bg-primary/10 border-primary text-primary"
                           : "border-border text-muted-foreground"
                       }`}
                     >

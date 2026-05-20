@@ -48,39 +48,46 @@
 
 @layer base {
   :root {
+    /* Brand tokens — source of truth */
+    --brand-azul: 225 31% 44%;
+    --brand-rojo: 2 46% 54%;
+    --brand-amarillo: 44 74% 60%;
+    --brand-gris: 0 0% 40%;
+    --brand-negro: 0 0% 0%;
+
     --background: 0 0% 98%;
-    --foreground: 0 0% 5%;
+    --foreground: var(--brand-negro);
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 5%;
+    --card-foreground: var(--brand-negro);
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    --popover-foreground: var(--brand-negro);
 
-    --primary: 232 95% 18%;
+    --primary: var(--brand-azul);
     --primary-foreground: 0 0% 98%;
 
     --secondary: 210 50% 96%;
-    --secondary-foreground: 232 95% 18%;
+    --secondary-foreground: var(--brand-azul);
 
     --muted: 210 40% 96%;
-    --muted-foreground: 0 0% 40%;
+    --muted-foreground: var(--brand-gris);
 
-    --accent: 45 89% 52%;
-    --accent-foreground: 0 0% 5%;
+    --accent: var(--brand-amarillo);
+    --accent-foreground: var(--brand-negro);
 
-    --destructive: 352 93% 44%;
+    --destructive: var(--brand-rojo);
     --destructive-foreground: 0 0% 98%;
 
-    --mc-red: 352 93% 44%;
+    --mc-red: var(--brand-rojo);
     --mc-blue: 213 66% 33%;
     --mc-dark-blue: 232 95% 18%;
-    --mc-yellow: 45 89% 52%;
-    --mc-black: 0 0% 5%;
+    --mc-yellow: var(--brand-amarillo);
+    --mc-black: var(--brand-negro);
 
-    --mc-diag-blue: 222 30% 43%;
-    --mc-diag-red: 1 41% 53%;
-    --mc-diag-yellow: 46 71% 59%;
+    --mc-diag-blue: var(--brand-azul);
+    --mc-diag-red: var(--brand-rojo);
+    --mc-diag-yellow: var(--brand-amarillo);
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
