@@ -25,12 +25,14 @@ npx vercel --prod --yes # Deploy a producción (si CI falla)
 ## Arquitectura
 
 ```
-Pages (6, lazy-loaded)
+Pages (7, lazy-loaded)
   └─ Components (~100, por dominio: admin/ auth/ diagnostic/ home/ mentor/ mirror/ muro/ community/ tabs/ ui/)
        └─ Hooks (17 custom, wrappean servicios con React Query)
-            └─ Services (5 módulos: wall / content / diagnostic / business-mirror / tiendup)
+            └─ Services (6 módulos: wall / content / diagnostic / business-mirror / tiendup + Repository layer)
                  └─ Supabase (Auth, DB, Realtime, Edge Functions)
 ```
+
+**Repository layer:** `src/repositories/index.ts` — abstracción sobre el cliente Supabase, usada internamente por los services.
 
 **Entry points:**
 - `src/main.tsx` — Sentry, PostHog, Service Worker
@@ -75,7 +77,9 @@ Para cambiar a freemium: editar `CURRENT_PLAN_ID = "freemium"` en `plans.ts`.
 
 **Componente:** `<FeatureGate feature="diagnostic_pdf">` — usa `hasFeature()` del plan activo.
 
-> **Regla:** usar `<AccessGate>` para restringir por membresía. Usar `<FeatureGate>` para restringir por feature flag. No mezclar.
+**Componente:** `<ContentGate>` — combina ambas capas para proteger contenido premium con lógica de blur/paywall.
+
+> **Regla:** usar `<AccessGate>` para restringir por membresía. Usar `<FeatureGate>` para restringir por feature flag. `<ContentGate>` cuando se necesiten ambas. No mezclar ad-hoc.
 
 ---
 
@@ -163,7 +167,7 @@ cp .env.example .env.local
 
 Requeridas: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_ENVIRONMENT` (`development` | `staging` | `production`).
 
-Opcionales: `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN`, `VITE_VAPID_PUBLIC_KEY`.
+Opcionales: `VITE_POSTHOG_KEY` (solo activo en `production`/`staging`), `VITE_SENTRY_DSN`, `VITE_VAPID_PUBLIC_KEY`, `VITE_TIENDUP_N1_URL`, `VITE_TIENDUP_N2_URL`.
 
 ---
 
@@ -172,6 +176,11 @@ Opcionales: `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN`, `VITE_VAPID_PUBLIC_KEY`.
 - Cliente: `src/integrations/supabase/client.ts`
 - Tipos auto-generados: `src/integrations/supabase/types.ts` — **no editar a mano**
 - Edge Functions: `supabase/functions/` — se despliegan con `deploy-functions.yml`
+  - `mentor-chat-stream` (SSE), `mentor-chat`, `generate-content`, `send-diagnostic-email`, `send-onboarding-email`
+  - `activate-membership-manual`, `admin-action`, `verify-admin`
+  - `tiendup-checkout`, `tiendup-webhook`, `sync-tiendup`
+  - `moderate-comment`, `moderate-post`, `send-push-notification`
+  - `_shared/` — helpers: `cors.ts`, `log.ts`, `middleware.ts`
 
 Tablas relevantes: `profiles` (access_level, nickname, membership_expires_at, mirror_completed, ofrece, busca, sector, empresa_tamano, visible_en_red), `payments`, `mentor_conversations`, `mentor_messages`, `diagnostic_results`.
 
@@ -186,7 +195,9 @@ Tablas relevantes: `profiles` (access_level, nickname, membership_expires_at, mi
 
 ## CI/CD y deploy
 
-Push a `main` → tests → build → `npx vercel --prod` (GitHub Actions `deploy.yml`).
+Deploy: push a `main` → Vercel CI automático → `app.mejoraok.com` (DNS Cloudflare).
+
+El pipeline (`deploy.yml`): tests → build → `npx vercel --prod` → health check en `app.mejoraok.com`. Si CI falla: `npx vercel --prod --yes` desde local.
 
 **Secrets requeridos en GitHub:**
 
@@ -199,10 +210,6 @@ Push a `main` → tests → build → `npx vercel --prod` (GitHub Actions `deplo
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Anon key |
 | `VITE_SUPABASE_PROJECT_ID` | ID del proyecto |
 
-> ⚠️ Sin `VERCEL_TOKEN`, el CI falla en deploy. Workaround: `npx vercel --prod --yes` desde local.
-
-**Producción:** `https://app.mejoraok.com` (`mejoraapp.vercel.app` redirige 308 a ese dominio via `vercel.json`).
-
 ---
 
 ## Convenciones
@@ -211,6 +218,6 @@ Push a `main` → tests → build → `npx vercel --prod` (GitHub Actions `deplo
 - Validación: **Zod** en todos los formularios (`src/lib/validation.ts`).
 - HTML externo: sanitizar con **DOMPurify** (`src/lib/security.ts`).
 - Rate limiting: `src/lib/rateLimit.ts`.
-- Tipos globales: `src/types/`.
+- Tipos distribuidos por módulo (no hay `src/types/`): `src/lib/*.ts`, `src/components/*/types.ts`, `src/integrations/supabase/types.ts`.
 - Pre-commit: Husky + lint-staged (ESLint en `.ts/.tsx`, Prettier en `.json/.md/.css/.html`).
 - **Cero** `@ts-ignore` nuevos. **Cero** `console.error` silenciados.
