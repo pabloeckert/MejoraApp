@@ -15,6 +15,7 @@ import Eventos from "@/components/tabs/Eventos";
 import CirculoDorado from "@/components/tabs/CirculoDorado";
 import { MiPerfil } from "@/components/tabs/MiPerfil";
 import ProfileCompleteModal from "@/components/ProfileCompleteModal";
+import { RedTab } from "@/components/tabs/RedTab";
 import { HomeDashboard } from "@/components/home/HomeDashboard";
 import { trackPageView, trackTabSwitch } from "@/lib/analytics";
 import { useLastVisit } from "@/hooks/useLastVisit";
@@ -116,6 +117,7 @@ const Index = () => {
         {activeTab === "emergencia" && <FeatureBoundary feature="Emergencia"><Emergencia /></FeatureBoundary>}
         {activeTab === "eventos" && <FeatureBoundary feature="Eventos"><Eventos /></FeatureBoundary>}
         {activeTab === "circulo" && <FeatureBoundary feature="Círculo Dorado"><CirculoDorado /></FeatureBoundary>}
+        {activeTab === "red" && <FeatureBoundary feature="Red"><RedTab /></FeatureBoundary>}
         {activeTab === "muro" && <FeatureBoundary feature="Muro"><Muro /></FeatureBoundary>}
         {activeTab === "comunidad" && <FeatureBoundary feature="Comunidad"><Comunidad /></FeatureBoundary>}
         {activeTab === "mentor" && <FeatureBoundary feature="Mentor IA"><Mentor /></FeatureBoundary>}

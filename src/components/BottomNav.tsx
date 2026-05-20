@@ -1,4 +1,4 @@
-import { Home, MessageSquare, ScanLine, Bot, UserCircle } from "lucide-react";
+import { Home, Users, ScanLine, Bot, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
@@ -10,7 +10,7 @@ interface BottomNavProps {
 
 const tabs: { id: string; label: string; icon: typeof Home; accent?: boolean; mirror?: boolean }[] = [
   { id: "home",       label: "Inicio",   icon: Home },
-  { id: "muro",       label: "Muro",     icon: MessageSquare },
+  { id: "red",        label: "Red",      icon: Users },
   { id: "diagnostico",label: "Mirror",   icon: ScanLine, mirror: true },
   { id: "mentor",     label: "Mentor",   icon: Bot, accent: true },
   { id: "perfil",     label: "Perfil",   icon: UserCircle },
