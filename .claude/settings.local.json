@@ -10,7 +10,17 @@
       "Bash(npx tsc *)",
       "Bash(git -C C:\\\\Github\\\\MejoraApp ls-files)",
       "Bash(Select-String \"\\\\.env\")",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "Bash(curl -sI http://app.mejoraok.com)",
+      "Bash(curl -sI https://mejoraapp.vercel.app)",
+      "Bash(curl -s https://app.mejoraok.com)",
+      "Bash(curl -sI https://app.mejoraok.com -H \"Cache-Control: no-cache\")",
+      "Bash(vercel ls *)",
+      "Bash(npx vercel *)",
+      "Bash(curl -s https://mejoraapp-8tqruj097-mejoraok-7590s-projects.vercel.app)",
+      "Bash(gh run *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Github\\\\MejoraApp\" -Name | Where-Object { $_ -notmatch \"^\\(node_modules|dist|coverage|\\\\.\\)\" })"
     ]
   }
 }
