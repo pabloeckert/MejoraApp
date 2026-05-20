@@ -34,8 +34,8 @@ const Onboarding = () => {
 
   const handleComplete = async () => {
     if (user) {
-      await supabase
-        .from("profiles")
+      // mirror_completed: columna nueva (migración 20260520) — actualizar con `supabase gen types`
+      await (supabase.from("profiles") as any)
         .update({ mirror_completed: true })
         .eq("user_id", user.id);
       queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
