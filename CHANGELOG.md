@@ -3,6 +3,30 @@
 Todas las mejoras notables de este proyecto están documentadas aquí.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [1.0.0] — 2026-05-19
+
+### Añadido
+- **Mirror Estratégico** como CTA principal: hero card en HomeDashboard + botón central en BottomNav
+- **Tokens de marca** como source of truth en CSS variables (`--brand-azul/rojo/amarillo/gris/negro`)
+- **Logo SVG** Miró-esque en `src/assets/logo.svg` con paleta oficial
+- **offline.html**: fallback offline de marca con instrucción de reintentar
+- **Redirect**: `mejoraapp.vercel.app` → `app.mejoraok.com` (308)
+
+### Cambiado
+- **Seguridad**: `INSTRUCTIVO_DESPLIEGUE.md` reescrito sin credenciales FTP; ahora es Vercel-only
+- **Estructura**: Documentación interna movida a `/docs/`; raíz solo tiene archivos esenciales
+- **Colores**: `blue-500`, `#495F93`, `#C64E4A` reemplazados por tokens semánticos en `src/components`
+- **PWA**: `manifest.json` con name/short_name correctos, theme_color `#495F93`, shortcuts `/mirror` y `/mentor`
+- **SEO**: title con "Mirror Estratégico", meta description ≤160 chars, og:image, JSON-LD Organization
+- **Service Worker**: bump a v5, precachea offline.html
+- **Onboarding**: al completar perfil, redirige al tab de diagnóstico (Mirror)
+- **ESLint**: cobertura excluida de linting; 0 warnings
+- **README**: reescrito para lectura en 30 segundos
+
+### Eliminado
+- Workflow `deploy-ghpages.yml` (legacy)
+- Credenciales FTP del repo (historial pendiente de rotación)
+
 ## [No publicado] — 2026-05-07
 
 ### Eliminado
