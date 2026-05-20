@@ -25,12 +25,18 @@ export interface ProfileData {
   bio: string | null;
   linkedin: string | null;
   website: string | null;
+  mirror_completed: boolean | null;
+  ofrece: string | null;
+  busca: string | null;
+  sector: string | null;
+  empresa_tamano: string | null;
+  visible_en_red: boolean | null;
 }
 
 async function fetchProfile(userId: string): Promise<ProfileData> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("empresa, cargo, phone, nombre, apellido, display_name, has_completed_diagnostic, access_level, nickname, whatsapp, birthday, membership_expires_at, avatar_url, bio, linkedin, website")
+    .select("empresa, cargo, phone, nombre, apellido, display_name, has_completed_diagnostic, access_level, nickname, whatsapp, birthday, membership_expires_at, avatar_url, bio, linkedin, website, mirror_completed, ofrece, busca, sector, empresa_tamano, visible_en_red")
     .eq("user_id", userId)
     .maybeSingle();
 

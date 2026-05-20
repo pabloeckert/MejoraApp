@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import ContenidoDeValor from "@/components/tabs/ContenidoDeValor";
@@ -26,13 +26,17 @@ const SPLASH_SEEN_KEY = "mc-splash-seen";
 
 const Index = () => {
   const { session, loading, user } = useAuth();
-  const { isComplete: profileComplete, isLoading: profileLoading } = useProfileComplete(user?.id);
+  const { isComplete: profileComplete, isLoading: profileLoading, profile } = useProfileComplete(user?.id);
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState(() => {
-    // Default to muro for returning users who've been here before
+    // Si viene del onboarding, abrir directo en la tab indicada
+    const fromState = (location.state as { initialTab?: string } | null)?.initialTab;
+    if (fromState) return fromState;
+    // Default a "red" para usuarios que ya visitaron la app
     try {
       const visits = parseInt(sessionStorage.getItem("mc-visits") ?? "0", 10);
       sessionStorage.setItem("mc-visits", String(visits + 1));
-      if (visits > 0) return "muro";
+      if (visits > 0) return "red";
     } catch { /* ignore */ }
     return "home";
   });
@@ -93,6 +97,11 @@ const Index = () => {
         <p className="text-sm text-muted-foreground">Verificando tu perfil…</p>
       </div>
     );
+  }
+
+  // Guard: usuarios nuevos (mirror_completed = false) van al onboarding antes de entrar
+  if (profile?.mirror_completed === false && profile?.access_level !== "ADMIN") {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return (

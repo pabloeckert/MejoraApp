@@ -13,6 +13,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Admin = lazy(() => import("./pages/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Splash = lazy(() => import("./pages/Splash"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const App = () => (
   <ErrorBoundary>
@@ -57,6 +58,14 @@ const App = () => (
               element={
                 <RouteErrorBoundary routeName="admin">
                   <Admin />
+                </RouteErrorBoundary>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <RouteErrorBoundary routeName="onboarding">
+                  <Onboarding />
                 </RouteErrorBoundary>
               }
             />

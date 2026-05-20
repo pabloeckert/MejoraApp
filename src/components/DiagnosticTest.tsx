@@ -32,7 +32,13 @@ import {
   clearProgress,
 } from "@/components/diagnostic";
 
-const DiagnosticTest = ({ onComplete }: { onComplete: () => void }) => {
+const DiagnosticTest = ({
+  onComplete,
+  onProgress,
+}: {
+  onComplete: () => void;
+  onProgress?: (step: Step, currentIdx: number, total: number) => void;
+}) => {
   const { user } = useAuth();
 
   // Restore progress on mount
@@ -78,6 +84,11 @@ const DiagnosticTest = ({ onComplete }: { onComplete: () => void }) => {
       saveProgress({ shuffledQuestions, currentIdx, answers, step });
     }
   }, [step, shuffledQuestions, currentIdx, answers]);
+
+  // Report progress to parent (used by OnboardingPage for the progress bar)
+  useEffect(() => {
+    onProgress?.(step, currentIdx, shuffledQuestions.length);
+  }, [step, currentIdx, shuffledQuestions.length, onProgress]);
 
   const startDiag = useCallback(() => {
     const shuffled = shuffle(BANCO_PREGUNTAS).map((q) => ({
