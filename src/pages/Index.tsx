@@ -113,13 +113,18 @@ const Index = () => {
         {activeTab === "novedades" && <FeatureBoundary feature="Novedades"><Novedades /></FeatureBoundary>}
         {activeTab === "perfil" && <FeatureBoundary feature="Mi Perfil"><MiPerfil /></FeatureBoundary>}
       </main>
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} badges={badges} />
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        badges={badges}
+        hasDiagnostic={!!sessionStorage.getItem("mc-diagnostic-done")}
+      />
 
-      {/* Profile completion modal */}
+      {/* Profile completion modal — al completar, va al Mirror */}
       {!profileComplete && user && (
         <ProfileCompleteModal
           userId={user.id}
-          onComplete={() => {/* React Query will auto-refetch */}}
+          onComplete={() => handleTabChange("diagnostico")}
         />
       )}
     </div>
