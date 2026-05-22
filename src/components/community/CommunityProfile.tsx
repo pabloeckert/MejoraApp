@@ -8,8 +8,6 @@
 import {
   Building2,
   Briefcase,
-  MapPin,
-  Globe,
   Linkedin,
   Award,
   MessageSquare,
@@ -83,11 +81,6 @@ export const CommunityProfile = ({
               {member.cargo}{member.cargo && member.empresa && " · "}{member.empresa}
             </p>
           )}
-          {member.city && (
-            <p className="text-caption text-muted-foreground flex items-center gap-1 mt-0.5">
-              <MapPin className="w-3 h-3" />{member.city}
-            </p>
-          )}
         </div>
 
         {/* Stats */}
@@ -120,11 +113,11 @@ export const CommunityProfile = ({
           </div>
         )}
 
-        {/* Industry */}
-        {member.industry && (
+        {/* Sector */}
+        {member.sector && (
           <div className="flex items-center gap-2 py-2">
             <Building2 className="w-4 h-4 text-muted-foreground" />
-            <span className="text-body text-muted-foreground">{member.industry}</span>
+            <span className="text-body text-muted-foreground">{member.sector}</span>
           </div>
         )}
 

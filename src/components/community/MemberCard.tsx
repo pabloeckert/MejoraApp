@@ -5,7 +5,7 @@
  * Compact variant for list view, featured variant for highlighted cards.
  */
 
-import { Award, MessageSquare, Heart, MapPin, ExternalLink } from "lucide-react";
+import { Award, MessageSquare, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CommunityMember } from "@/hooks/useMembers";
 
@@ -143,11 +143,6 @@ export const MemberCard = ({
         </div>
         <p className="text-caption text-muted-foreground truncate">
           {member.cargo}{member.cargo && member.empresa && " · "}{member.empresa}
-          {member.city && (
-            <span className="inline-flex items-center gap-0.5 ml-1">
-              <MapPin className="w-2.5 h-2.5" />{member.city}
-            </span>
-          )}
         </p>
       </div>
 

@@ -1,8 +1,12 @@
 /**
  * useMembers — Hook for community member directory
  *
- * Fetches public profiles with stats for the Comunidad tab.
- * Supports filtering by industry and search by name.
+ * Fetches profiles for the Comunidad tab.
+ * Supports filtering by sector and search by name.
+ *
+ * Note: community_challenges and challenge_participants tables do not exist
+ * in the current schema. Those hooks return empty/no-op until the tables
+ * are created via migration.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -16,8 +20,7 @@ export interface CommunityMember {
   empresa: string | null;
   cargo: string | null;
   bio: string | null;
-  city: string | null;
-  industry: string | null;
+  sector: string | null;
   linkedin: string | null;
   avatar_url: string | null;
   badge_count: number;
@@ -42,13 +45,12 @@ export function useMembers(options: UseMembersOptions = {}) {
     setLoading(true);
 
     let query = supabase
-      .from("public_profiles")
-      .select("*", { count: "exact" })
-      .order("badge_count", { ascending: false })
-      .order("total_likes", { ascending: false });
+      .from("profiles")
+      .select("id, nombre, apellido, display_name, empresa, cargo, bio, sector, linkedin, avatar_url", { count: "exact" })
+      .order("nombre", { ascending: true });
 
     if (industry && industry !== "all") {
-      query = query.eq("industry", industry);
+      query = query.eq("sector", industry);
     }
 
     if (search && search.trim()) {
@@ -58,11 +60,7 @@ export function useMembers(options: UseMembersOptions = {}) {
       );
     }
 
-    if (featured) {
-      query = query.limit(3);
-    } else {
-      query = query.limit(limit);
-    }
+    query = query.limit(featured ? 3 : limit);
 
     const { data, error, count } = await query;
 
@@ -70,7 +68,14 @@ export function useMembers(options: UseMembersOptions = {}) {
       console.error("Error fetching members:", error);
       setMembers([]);
     } else {
-      setMembers((data as CommunityMember[]) ?? []);
+      setMembers(
+        (data ?? []).map((row) => ({
+          ...row,
+          badge_count: 0,
+          post_count: 0,
+          total_likes: 0,
+        }))
+      );
       setTotalCount(count ?? 0);
     }
 
@@ -85,7 +90,7 @@ export function useMembers(options: UseMembersOptions = {}) {
 }
 
 /**
- * useMemberProfile — Fetch a single member's public profile
+ * useMemberProfile — Fetch a single member's profile by auth user id
  */
 export function useMemberProfile(userId: string | null) {
   const [profile, setProfile] = useState<CommunityMember | null>(null);
@@ -96,16 +101,16 @@ export function useMemberProfile(userId: string | null) {
 
     setLoading(true);
     supabase
-      .from("public_profiles")
-      .select("*")
-      .eq("id", userId)
+      .from("profiles")
+      .select("id, nombre, apellido, display_name, empresa, cargo, bio, sector, linkedin, avatar_url")
+      .eq("user_id", userId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) {
           console.error("Error fetching member profile:", error);
           setProfile(null);
         } else {
-          setProfile(data as CommunityMember);
+          setProfile(data ? { ...data, badge_count: 0, post_count: 0, total_likes: 0 } : null);
         }
         setLoading(false);
       });
@@ -115,7 +120,8 @@ export function useMemberProfile(userId: string | null) {
 }
 
 /**
- * useChallenges — Fetch active community challenges
+ * useChallenges — community_challenges table does not exist yet.
+ * Returns empty until a migration creates it.
  */
 export interface CommunityChallenge {
   id: string;
@@ -128,74 +134,17 @@ export interface CommunityChallenge {
 }
 
 export function useChallenges() {
-  const [challenges, setChallenges] = useState<CommunityChallenge[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetch = async () => {
-      const { data, error } = await supabase
-        .from("community_challenges")
-        .select("*")
-        .eq("is_active", true)
-        .order("end_date", { ascending: true })
-        .limit(3);
-
-      if (error) {
-        console.error("Error fetching challenges:", error);
-      } else {
-        setChallenges((data as CommunityChallenge[]) ?? []);
-      }
-      setLoading(false);
-    };
-
-    fetch();
-  }, []);
-
-  return { challenges, loading };
+  return { challenges: [] as CommunityChallenge[], loading: false };
 }
 
 /**
- * useChallengeParticipation — Check if user joined a challenge
+ * useChallengeParticipation — challenge_participants table does not exist yet.
+ * Returns no-op until a migration creates it.
  */
-export function useChallengeParticipation(challengeId: string, userId?: string) {
-  const [joined, setJoined] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!userId || !challengeId) {
-      setLoading(false);
-      return;
-    }
-
-    supabase
-      .from("challenge_participants")
-      .select("id")
-      .eq("challenge_id", challengeId)
-      .eq("user_id", userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        setJoined(!!data);
-        setLoading(false);
-      });
-  }, [challengeId, userId]);
-
-  const toggleJoin = async () => {
-    if (!userId) return;
-
-    if (joined) {
-      await supabase
-        .from("challenge_participants")
-        .delete()
-        .eq("challenge_id", challengeId)
-        .eq("user_id", userId);
-      setJoined(false);
-    } else {
-      await supabase
-        .from("challenge_participants")
-        .insert({ challenge_id: challengeId, user_id: userId });
-      setJoined(true);
-    }
+export function useChallengeParticipation(_challengeId: string, _userId?: string) {
+  return {
+    joined: false,
+    loading: false,
+    toggleJoin: async () => {},
   };
-
-  return { joined, loading, toggleJoin };
 }
