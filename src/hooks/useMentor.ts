@@ -65,7 +65,9 @@ export function useMentorChat(options?: UseMentorChatOptions): UseMentorChatRetu
     const loadMessages = async () => {
       setLoading(true);
       try {
-        const { data, error: fetchError } = await supabase
+        // as any: mentor_messages no está en los tipos generados hasta que se ejecuten
+        // las migraciones 20260505000000_missing_tables.sql + 20260522000000_mentor_messages.sql
+        const { data, error: fetchError } = await (supabase as any)
           .from("mentor_messages")
           .select("*")
           .eq("conversation_id", conversationId)
@@ -261,7 +263,9 @@ export function useMentorConversations(): UseMentorConversationsReturn {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabase
+      // as any: mentor_conversations no está en los tipos generados hasta que se ejecuten
+      // las migraciones 20260505000000_missing_tables.sql + 20260522000000_mentor_messages.sql
+      const { data, error: fetchError } = await (supabase as any)
         .from("mentor_conversations")
         .select("id, title, created_at, updated_at, is_active")
         .eq("is_active", true)
@@ -272,8 +276,8 @@ export function useMentorConversations(): UseMentorConversationsReturn {
 
       // Get last message for each conversation
       const enriched = await Promise.all(
-        (data || []).map(async (conv) => {
-          const { data: lastMsg } = await supabase
+        (data || []).map(async (conv: MentorConversation) => {
+          const { data: lastMsg } = await (supabase as any)
             .from("mentor_messages")
             .select("content")
             .eq("conversation_id", conv.id)
@@ -281,7 +285,7 @@ export function useMentorConversations(): UseMentorConversationsReturn {
             .limit(1)
             .maybeSingle();
 
-          const { count } = await supabase
+          const { count } = await (supabase as any)
             .from("mentor_messages")
             .select("*", { count: "exact", head: true })
             .eq("conversation_id", conv.id);
@@ -310,7 +314,7 @@ export function useMentorConversations(): UseMentorConversationsReturn {
   const deleteConversation = useCallback(
     async (id: string) => {
       try {
-        const { error: delError } = await supabase
+        const { error: delError } = await (supabase as any)
           .from("mentor_conversations")
           .update({ is_active: false })
           .eq("id", id);

@@ -37,7 +37,18 @@ export function useRanking(limit: number = 10) {
         return;
       }
 
-      setRanking(data ?? []);
+      setRanking(
+        (data ?? []).map((row) => ({
+          user_id: row.user_id ?? "",
+          display_name: row.display_name ?? "",
+          empresa: row.empresa ?? "",
+          post_count: row.post_count ?? 0,
+          comment_count: row.comment_count ?? 0,
+          total_likes_received: row.total_likes_received ?? 0,
+          activity_score: row.activity_score ?? 0,
+          badge_count: row.badge_count ?? 0,
+        }))
+      );
       setLoading(false);
     };
 
