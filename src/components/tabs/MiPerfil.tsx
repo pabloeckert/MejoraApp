@@ -140,8 +140,7 @@ export function MiPerfil() {
     if (!user || saving) return;
     setSaving(true);
 
-    // Columnas nuevas (migración 20260520) incluidas con cast — actualizar con `supabase gen types`
-    const { error } = await (supabase.from("profiles") as any)
+    const { error } = await supabase.from("profiles")
       .update({
         nombre: form.nombre.trim() || null,
         apellido: form.apellido.trim() || null,

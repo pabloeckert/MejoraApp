@@ -55,8 +55,7 @@ const Onboarding = () => {
   const handleEnterRed = async () => {
     setSaving(true);
     if (user) {
-      // mirror_completed + ofrece/busca: columnas nuevas (migración 20260520)
-      await (supabase.from("profiles") as any)
+      await supabase.from("profiles")
         .update({
           mirror_completed: true,
           ofrece: ofrece.trim() || null,

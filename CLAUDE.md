@@ -107,9 +107,9 @@ Tab activa en BottomNav reemplazando a Muro (ícono `Users`). El Muro sigue sien
 
 `mirror_completed boolean DEFAULT false`, `ofrece text`, `busca text`, `sector text`, `empresa_tamano text CHECK IN ('1-10','10-50','50-200','200+')`, `visible_en_red boolean DEFAULT true`.
 
-> ⚠️ Los tipos de Supabase (`src/integrations/supabase/types.ts`) todavía no conocen estas columnas. Hasta regenerar, el código usa casts `as unknown as T` y `as any` en los puntos de acceso. No agregar más `as any` sin este comentario explicativo.
+> Para regenerar tipos tras una nueva migración:
 > ```bash
-> npx supabase gen types typescript --project-id=7uqmgyuhqfurvirmcqnj > src/integrations/supabase/types.ts
+> npx supabase gen types typescript --project-id=pwiduojwgkaoxxuautkp > src/integrations/supabase/types.ts
 > ```
 
 ### Perfil editable — Modal

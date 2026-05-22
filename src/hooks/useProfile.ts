@@ -41,8 +41,7 @@ async function fetchProfile(userId: string): Promise<ProfileData> {
     .maybeSingle();
 
   if (error) throw error;
-  // Columnas nuevas (migración 20260520) — actualizar con `supabase gen types` post-migración
-  return data as unknown as ProfileData;
+  return data as ProfileData;
 }
 
 export function useProfile(userId: string | undefined) {

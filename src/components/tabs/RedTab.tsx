@@ -24,7 +24,6 @@ interface RedMember {
 // ── Data ────────────────────────────────────────────────────────
 
 async function fetchRedMembers(): Promise<RedMember[]> {
-  // Columnas nuevas (migración 20260520) — actualizar con `supabase gen types` post-migración
   const { data, error } = await supabase
     .from("profiles")
     .select("id, nombre, apellido, empresa, sector, ofrece, busca, empresa_tamano, avatar_url, display_name")
@@ -33,7 +32,7 @@ async function fetchRedMembers(): Promise<RedMember[]> {
     .order("nombre", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as unknown as RedMember[];
+  return (data ?? []) as RedMember[];
 }
 
 function useRedMembers() {
