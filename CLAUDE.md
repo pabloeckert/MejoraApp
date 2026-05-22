@@ -63,6 +63,8 @@ El perfil del usuario en Supabase tiene un campo `access_level` con el enum `Acc
 
 **Hook:** `useAccessLevel(userId)` → `{ level, hasAccess(required), isAdmin, isExpired }` — cachea 5 min.
 
+> **`access_level` vs `membership_level`:** son dos columnas distintas en `profiles`. `access_level` (mayúsculas: `N0/N1/N2/ADMIN`) es la fuente de verdad para RLS y toda la lógica de acceso — es lo que leen `useAccessLevel` y `useMembership`. `membership_level` (minúsculas) es la columna que escribe la Edge Function `sync-tiendup` al sincronizar suscripciones de Tiendup; no se usa para control de acceso directo. No confundirlas.
+
 **Componente:** `<AccessGate required="N1">` — muestra `UpgradePrompt` si el nivel es insuficiente. Acepta `blur` para difuminar el contenido en vez de ocultarlo.
 
 ### Capa 2: Feature flags (FeatureId)
@@ -105,7 +107,10 @@ Tab activa en BottomNav reemplazando a Muro (ícono `Users`). El Muro sigue sien
 
 `mirror_completed boolean DEFAULT false`, `ofrece text`, `busca text`, `sector text`, `empresa_tamano text CHECK IN ('1-10','10-50','50-200','200+')`, `visible_en_red boolean DEFAULT true`.
 
-> ⚠️ Los tipos de Supabase (`src/integrations/supabase/types.ts`) todavía no conocen estas columnas. Hasta regenerar con `supabase gen types typescript --project-id=<id>`, el código usa casts `as unknown as T` y `as any` en los puntos de acceso a estas columnas. No agregar más `as any` sin este comentario explicativo.
+> ⚠️ Los tipos de Supabase (`src/integrations/supabase/types.ts`) todavía no conocen estas columnas. Hasta regenerar, el código usa casts `as unknown as T` y `as any` en los puntos de acceso. No agregar más `as any` sin este comentario explicativo.
+> ```bash
+> npx supabase gen types typescript --project-id=7uqmgyuhqfurvirmcqnj > src/integrations/supabase/types.ts
+> ```
 
 ### Perfil editable — Modal
 
@@ -114,6 +119,17 @@ Tab activa en BottomNav reemplazando a Muro (ícono `Users`). El Muro sigue sien
 ### Seed de demo
 
 `supabase/seed_red.sql` — 6 perfiles ficticios de founders argentinos con todos los campos completos. Contraseña `Demo1234!`. Idempotente via `ON CONFLICT DO UPDATE`. Correr desde SQL Editor de Supabase Dashboard.
+
+---
+
+## Business Mirror Gamer
+
+Feature de diagnósticos gamificados para líderes. Flujo: `BusinessMirrorHub` → selección de test → `GamePlayer` → `GameResult`.
+
+- **Tests:** definidos en `src/data/businessMirrorTests.ts` (array `ALL_TESTS`, función `calculateProfile`). Cada test tiene `slug`, `game_type`, `min_access_level` y preguntas con pesos.
+- **Service:** `src/services/business-mirror.service.ts` — fetch de tests, guardado de resultados, historial por usuario. Usa `mirror_game_tests` y `mirror_game_results` en Supabase.
+- **Hook:** `useMirrorResults(userId)` — devuelve historial de resultados con join al test.
+- **Acceso:** `min_access_level` por test. `GamePlayer` verifica contra `useAccessLevel` antes de mostrar preguntas.
 
 ---
 
@@ -218,6 +234,7 @@ El pipeline (`deploy.yml`): tests → build → `npx vercel --prod` → health c
 - Validación: **Zod** en todos los formularios (`src/lib/validation.ts`).
 - HTML externo: sanitizar con **DOMPurify** (`src/lib/security.ts`).
 - Rate limiting: `src/lib/rateLimit.ts`.
+- Analytics: `src/lib/analytics.ts` — PostHog solo activo en `production`/`staging`. Usar `trackEvent(name, props?)` para eventos custom; no llamar PostHog directamente en componentes.
 - Tipos distribuidos por módulo (no hay `src/types/`): `src/lib/*.ts`, `src/components/*/types.ts`, `src/integrations/supabase/types.ts`.
 - Pre-commit: Husky + lint-staged (ESLint en `.ts/.tsx`, Prettier en `.json/.md/.css/.html`).
 - **Cero** `@ts-ignore` nuevos. **Cero** `console.error` silenciados.
