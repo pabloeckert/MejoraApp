@@ -1,6 +1,4 @@
 {
-  "model": "claude-sonnet-4-6",
-  "effortLevel": "xhigh",
   "permissions": {
     "allow": [
       "PowerShell(Get-ChildItem -Path \"C:\\\\Github\\\\MejoraApp\" -Force | Select-Object Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"Dir\"}else{\"File\"}}} | Format-Table -AutoSize)",
@@ -27,7 +25,10 @@
       "Bash(curl -s https://app.mejoraok.com)",
       "Bash(curl -sI https://app.mejoraok.com -H \"Cache-Control: no-cache\")",
       "Bash(curl -s https://mejoraapp-8tqruj097-mejoraok-7590s-projects.vercel.app)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(gh api *)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(gh pr *)"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -36,5 +37,7 @@
       "Read(.env.*)",
       "Read(**/secrets/**)"
     ]
-  }
+  },
+  "model": "claude-sonnet-4-6",
+  "effortLevel": "xhigh"
 }
