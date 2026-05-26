@@ -156,7 +156,7 @@ const ConversationItem = ({
         )}
         <div className="flex items-center gap-2 mt-1">
           <span className="text-caption text-muted-foreground">
-            {formatDate(conversation.updated_at)}
+            {formatDate(conversation.updated_at ?? "")}
           </span>
           {conversation.message_count && (
             <span className="text-caption text-muted-foreground">

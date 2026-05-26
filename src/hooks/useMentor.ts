@@ -20,9 +20,9 @@ export interface MentorMessage {
 
 export interface MentorConversation {
   id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
+  title: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   is_active: boolean;
   message_count?: number;
   last_message?: string;
@@ -65,9 +65,7 @@ export function useMentorChat(options?: UseMentorChatOptions): UseMentorChatRetu
     const loadMessages = async () => {
       setLoading(true);
       try {
-        // as any: mentor_messages no está en los tipos generados hasta que se ejecuten
-        // las migraciones 20260505000000_missing_tables.sql + 20260522000000_mentor_messages.sql
-        const { data, error: fetchError } = await (supabase as any)
+        const { data, error: fetchError } = await supabase
           .from("mentor_messages")
           .select("*")
           .eq("conversation_id", conversationId)
@@ -263,21 +261,18 @@ export function useMentorConversations(): UseMentorConversationsReturn {
     setLoading(true);
     setError(null);
     try {
-      // as any: mentor_conversations no está en los tipos generados hasta que se ejecuten
-      // las migraciones 20260505000000_missing_tables.sql + 20260522000000_mentor_messages.sql
-      const { data, error: fetchError } = await (supabase as any)
+      const { data, error: fetchError } = await supabase
         .from("mentor_conversations")
-        .select("id, title, created_at, updated_at, is_active")
-        .eq("is_active", true)
+        .select("id, title, created_at, updated_at")
         .order("updated_at", { ascending: false })
         .limit(50);
 
       if (fetchError) throw fetchError;
 
-      // Get last message for each conversation
+      // Enrich each conversation with last message and count
       const enriched = await Promise.all(
-        (data || []).map(async (conv: MentorConversation) => {
-          const { data: lastMsg } = await (supabase as any)
+        (data || []).map(async (conv) => {
+          const { data: lastMsg } = await supabase
             .from("mentor_messages")
             .select("content")
             .eq("conversation_id", conv.id)
@@ -285,13 +280,14 @@ export function useMentorConversations(): UseMentorConversationsReturn {
             .limit(1)
             .maybeSingle();
 
-          const { count } = await (supabase as any)
+          const { count } = await supabase
             .from("mentor_messages")
             .select("*", { count: "exact", head: true })
             .eq("conversation_id", conv.id);
 
           return {
             ...conv,
+            is_active: true,
             message_count: count || 0,
             last_message: lastMsg?.content?.substring(0, 100) || "",
           };
@@ -314,9 +310,9 @@ export function useMentorConversations(): UseMentorConversationsReturn {
   const deleteConversation = useCallback(
     async (id: string) => {
       try {
-        const { error: delError } = await (supabase as any)
+        const { error: delError } = await supabase
           .from("mentor_conversations")
-          .update({ is_active: false })
+          .delete()
           .eq("id", id);
 
         if (delError) throw delError;
