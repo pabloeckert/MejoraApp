@@ -19,7 +19,6 @@ import {
   Clock,
   Loader2,
   CheckCircle2,
-  QrCode,
   CalendarPlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,10 +218,6 @@ export default function Eventos() {
                         <div className="flex gap-2 mt-3">
                           {registered ? (
                             <>
-                              <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                                <QrCode className="w-3.5 h-3.5" />
-                                Mi QR
-                              </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
