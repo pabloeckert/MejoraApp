@@ -5,10 +5,39 @@
  * N2: pantalla VIP completa con Mesa de Alianzas, Emergencia y contenido exclusivo
  */
 
+import { useEffect, useState } from "react";
 import { useMembership } from "@/hooks/useMembership";
 import { ContentGate } from "@/components/ContentGate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Crown, Users, AlertTriangle, BookOpen, MessageCircle, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface AllianceMember {
+  id: string;
+  nombre: string | null;
+  empresa: string | null;
+  sector: string | null;
+}
+
+function useMesaDeAlianzas() {
+  const [members, setMembers] = useState<AllianceMember[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("id, nombre, empresa, sector")
+      .eq("visible_en_red", true)
+      .order("created_at", { ascending: true })
+      .limit(10)
+      .then(({ data }) => {
+        setMembers((data ?? []) as AllianceMember[]);
+        setLoading(false);
+      });
+  }, []);
+
+  return { members, loading };
+}
 
 // ── Preview borrosa ───────────────────────────────────────────────
 
@@ -59,6 +88,8 @@ const VIP_FEATURES = [
 ];
 
 function VipView() {
+  const { members: allianceMembers, loading: allianceLoading } = useMesaDeAlianzas();
+
   const handleWhatsApp = (title: string) => {
     const text = encodeURIComponent(`Hola! Soy miembro N2 y quiero acceder a "${title}" del Círculo Dorado.`);
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
@@ -88,23 +119,50 @@ function VipView() {
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
           <Users className="w-4 h-4" /> Mesa de Alianzas
         </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {["CEO · Tech", "CFO · Finanzas", "COO · Industria", "Dir. · Marketing"].map((role) => (
-            <div
-              key={role}
-              className="rounded-xl p-3 flex flex-col gap-1"
-              style={{ background: '#111118', border: '1px solid #2A2A3A' }}
-            >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                style={{ background: '#1C4D8C' }}
-              >
-                CD
-              </div>
-              <span className="text-xs text-gray-300 mt-1">{role}</span>
-            </div>
-          ))}
-        </div>
+        {allianceLoading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: '#111118' }} />
+            ))}
+          </div>
+        ) : allianceMembers.length === 0 ? (
+          <div className="rounded-xl p-4 text-center" style={{ background: '#111118', border: '1px solid #2A2A3A' }}>
+            <p className="text-sm text-gray-400">Próximamente — completá tu perfil para acceder</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {allianceMembers.map((member) => {
+              const initials = (member.nombre ?? "?")
+                .split(" ")
+                .slice(0, 2)
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase();
+              return (
+                <div
+                  key={member.id}
+                  className="rounded-xl p-3 flex flex-col gap-1"
+                  style={{ background: '#111118', border: '1px solid #2A2A3A' }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                    style={{ background: '#1C4D8C' }}
+                  >
+                    {initials}
+                  </div>
+                  <span className="text-xs font-medium text-white mt-1 truncate">
+                    {member.nombre ?? "Líder"}
+                  </span>
+                  {(member.empresa || member.sector) && (
+                    <span className="text-xs text-gray-400 truncate">
+                      {[member.empresa, member.sector].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Botón de Emergencia */}
