@@ -17,7 +17,6 @@ import {
   Search,
   Flame,
   Trophy,
-  TrendingUp,
   ChevronRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,21 +68,11 @@ const Comunidad = () => {
       {/* Stats Bar */}
       <Card>
         <CardContent className="p-3">
-          <div className="grid grid-cols-3 divide-x divide-border">
+          <div className="flex items-center gap-3 justify-center">
             <StatItem
               value={totalCount}
-              label="Miembros"
+              label="Miembros en la comunidad"
               icon={<Users className="w-3.5 h-3.5 text-primary" />}
-            />
-            <StatItem
-              value={Math.max(1, Math.floor(totalCount * 0.25))}
-              label="Activos hoy"
-              icon={<TrendingUp className="w-3.5 h-3.5 text-emerald-500" />}
-            />
-            <StatItem
-              value={`${Math.min(99, Math.floor(totalCount * 1.9))}%`}
-              label="Engagement"
-              icon={<Flame className="w-3.5 h-3.5 text-amber-500" />}
             />
           </div>
         </CardContent>
