@@ -49,6 +49,7 @@ export interface TestDefinition {
   color: string;
   bgColor: string;
   gameType: GameType;
+  minAccessLevel: "N0" | "N1" | "N2";
   timeEstimateMin: number;
   questions: TestQuestion[];
   scoringRules: ScoringRule[];
@@ -74,6 +75,7 @@ const mirrorEstrategico: TestDefinition = {
   color: "hsl(var(--brand-azul))",
   bgColor: "bg-blue-50 dark:bg-blue-950/30",
   gameType: "classic",
+  minAccessLevel: "N0",
   timeEstimateMin: 2,
   questions: [
     {
@@ -272,6 +274,7 @@ const misionRescate: TestDefinition = {
   color: "#DC2626",
   bgColor: "bg-red-50 dark:bg-red-950/30",
   gameType: "puzzle",
+  minAccessLevel: "N1",
   timeEstimateMin: 3,
   questions: [
     {
@@ -377,6 +380,7 @@ const elCamino: TestDefinition = {
   color: "#7C3AED",
   bgColor: "bg-violet-50 dark:bg-violet-950/30",
   gameType: "adventure",
+  minAccessLevel: "N1",
   timeEstimateMin: 4,
   questions: [
     {
@@ -482,6 +486,7 @@ const mindLab: TestDefinition = {
   color: "#0891B2",
   bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
   gameType: "mental",
+  minAccessLevel: "N1",
   timeEstimateMin: 3,
   questions: [
     {
@@ -637,6 +642,7 @@ const logicGate: TestDefinition = {
   color: "#4F46E5",
   bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
   gameType: "logic",
+  minAccessLevel: "N2",
   timeEstimateMin: 4,
   questions: [
     {

@@ -2,7 +2,7 @@
  * BusinessMirrorHub — Catálogo de tests del Business Mirror Gamer
  *
  * Muestra los tests disponibles con su estado (completado/pendiente).
- * N1/N2 pueden acceder a todos. N0 ve blur.
+ * Acceso por test según minAccessLevel: N0=libre, N1/N2=premium con blur para niveles menores.
  */
 
 import { useState, useEffect } from "react";
@@ -128,7 +128,7 @@ export function BusinessMirrorHub({ onSelectTest }: BusinessMirrorHubProps) {
             : null;
 
           return (
-            <AccessGate key={test.slug} required="N1" blur>
+            <AccessGate key={test.slug} required={test.minAccessLevel} blur>
               <button
                 onClick={() => onSelectTest(test.slug)}
                 className="w-full text-left group"
