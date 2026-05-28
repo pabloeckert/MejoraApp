@@ -28,7 +28,9 @@
       "Skill(update-config)",
       "Bash(gh api *)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(npx supabase *)",
+      "Bash(echo \"EXIT:$?\")"
     ],
     "deny": [
       "Bash(rm -rf /)",

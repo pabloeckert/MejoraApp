@@ -27,19 +27,23 @@ npx vercel --prod --yes # Deploy a producción (si CI falla)
 ```
 Pages (7, lazy-loaded)
   └─ Components (~100, por dominio: admin/ auth/ diagnostic/ home/ mentor/ mirror/ muro/ community/ tabs/ ui/)
-       └─ Hooks (17 custom, wrappean servicios con React Query)
-            └─ Services (6 módulos: wall / content / diagnostic / business-mirror / tiendup + Repository layer)
+       └─ Hooks (~17 custom, wrappean servicios con React Query)
+            └─ Services (5 módulos: wall / content / diagnostic / business-mirror / tiendup + Repository layer)
                  └─ Supabase (Auth, DB, Realtime, Edge Functions)
 ```
 
-**Repository layer:** `src/repositories/index.ts` — abstracción sobre el cliente Supabase, usada internamente por los services.
+**Repository layer:** `src/repositories/index.ts` — exports: `wallRepo`, `contentRepo`, `profileRepo`, `diagnosticRepo`, `novedadesRepo`. Abstracción pura sobre Supabase; la lógica de negocio va en `services/`.
 
 **Entry points:**
 - `src/main.tsx` — Sentry, PostHog, Service Worker
 - `src/App.tsx` — rutas con lazy-loading y `RouteErrorBoundary` por ruta
-- `src/components/Providers.tsx` — 7+ providers (Auth, Query, Theme, I18n, etc.)
+- `src/components/Providers.tsx` — 6 providers en orden: HelmetProvider → QueryClient → Theme → I18n → Tooltip → Auth
 
 **Páginas:** `/` (Index), `/splash`, `/auth`, `/reset-password`, `/admin`, `/onboarding`, `*` (NotFound).
+
+**`Index.tsx` es la SPA principal** — renderiza tabs por `activeTab` state. Tabs disponibles (no todos en nav): `home`, `contenido`, `diagnostico`, `mirror`, `emergencia`, `eventos`, `circulo`, `red`, `muro`, `comunidad`, `mentor`, `novedades`, `perfil`. Cada tab está envuelta en `<FeatureBoundary feature="...">` para error isolation por tab.
+
+**Navegación entre tabs desde código:** `window.dispatchEvent(new CustomEvent("navigate-tab", { detail: "tabId" }))` — escuchado en `Index.tsx`.
 
 **Estado:**
 - Server state → React Query (`staleTime: 2min`, `retry: 1`)
@@ -101,7 +105,7 @@ Usuarios con `has_completed_diagnostic = true` previo a la migración quedan con
 
 Directorio de líderes. Query: `profiles WHERE visible_en_red = true AND mirror_completed = true`. Filtros client-side por texto, sector y empresa_tamano. Cards muestran nombre, empresa, sector (badge), ofrece/busca truncados. Banner suave si el usuario propio tiene ofrece/busca vacíos.
 
-Tab activa en BottomNav reemplazando a Muro (ícono `Users`). El Muro sigue siendo renderable como tab pero no está en la nav principal.
+**BottomNav actual (5 tabs):** `home` (Inicio), `red` (Red, ícono Users), `diagnostico` (Mirror — botón circular central), `mentor` (Mentor IA), `perfil`. El Muro y otros tabs son accesibles via código pero no están en la nav principal.
 
 ### Columnas nuevas en `profiles` (migración 20260520)
 
@@ -199,6 +203,15 @@ Opcionales: `VITE_POSTHOG_KEY` (solo activo en `production`/`staging`), `VITE_SE
   - `_shared/` — helpers: `cors.ts`, `log.ts`, `middleware.ts`
 
 Tablas relevantes: `profiles` (access_level, nickname, membership_expires_at, mirror_completed, ofrece, busca, sector, empresa_tamano, visible_en_red), `payments`, `mentor_conversations`, `mentor_messages`, `diagnostic_results`.
+
+---
+
+## Tablas/vistas pendientes de crear
+
+Las siguientes aún no existen en el schema real de Supabase — los hooks devuelven vacío/no-op hasta que se ejecute la migración correspondiente:
+
+- `community_challenges` y `challenge_participants` — usadas por `useChallenges` / `useChallengeParticipation` en `useMembers.ts`
+- `community_ranking` (view) — usada por `useRanking`; el hook tiene fallback manual si la vista no existe
 
 ---
 
