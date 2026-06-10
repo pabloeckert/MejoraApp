@@ -71,6 +71,7 @@ Deno.serve(
 
     const { error: updateError } = await db.from("profiles").update({
       membership_level:       level,
+      access_level:           level === "n2" ? "N2" : "N1",
       membership_expires_at:  validUntil.toISOString(),
       membership_started_at:  validFrom.toISOString(),
     }).eq("id", user_id);

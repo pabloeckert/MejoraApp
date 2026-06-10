@@ -58,8 +58,7 @@ const FREEMIUM: PlanFeatures = {
 const FREE_TIER: PlanFeatures = { ...FREEMIUM };
 
 // ── Current Plan ───────────────────────────────────────────────
-// Cambiar a "freemium" cuando se defina el modelo de negocio
-export const CURRENT_PLAN_ID = "all_free";
+export const CURRENT_PLAN_ID = "freemium";
 
 const PLANS: Record<string, PlanConfig> = {
   all_free: {
@@ -100,8 +99,7 @@ export const PREMIUM_FEATURES: FeatureId[] = [
 
 /** Check if a feature is premium-only in the current plan */
 export function isPremiumFeature(featureId: FeatureId): boolean {
-  if (CURRENT_PLAN_ID === "all_free") return false;
-  return PREMIUM_FEATURES.includes(featureId);
+  return PREMIUM_FEATURES.includes(featureId) && !PLAN_CONFIG.features[featureId];
 }
 
 // ── Premium Feature Labels (for upgrade prompts) ───────────────

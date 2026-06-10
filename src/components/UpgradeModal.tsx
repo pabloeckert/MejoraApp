@@ -1,5 +1,6 @@
 import { X, Check } from 'lucide-react';
 import { MEMBERSHIP_CONFIG } from '@/lib/brand';
+import { trackCheckoutOpened } from '@/lib/analytics';
 
 interface UpgradeModalProps {
   targetLevel: 'n1' | 'n2';
@@ -25,7 +26,10 @@ export function UpgradeModal({ targetLevel, isOpen, onClose }: UpgradeModalProps
   const checkoutUrl = CHECKOUT_URLS[targetLevel];
 
   const handlePay = () => {
-    if (checkoutUrl) window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+    if (checkoutUrl) {
+      trackCheckoutOpened(targetLevel);
+      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (

@@ -44,6 +44,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccessLevel, type AccessLevel } from "@/hooks/useAccessLevel";
@@ -52,6 +53,7 @@ import { useMirrorResults } from "@/hooks/useMirrorResults";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { DataManagement } from "@/components/DataManagement";
+import { trackMembershipVerified } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 const LEVEL_CONFIG: Record<AccessLevel, { label: string; icon: typeof Crown; color: string; bg: string; border: string }> = {
@@ -86,6 +88,7 @@ const formatCurrency = (amount: number | null, currency: string | null) => {
 export function MiPerfil() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useProfile(user?.id);
   const { level, isAdmin, isExpired, membershipExpiresAt } = useAccessLevel(user?.id);
   const { data: payments, isLoading: paymentsLoading } = usePayments(user?.id);
@@ -94,6 +97,35 @@ export function MiPerfil() {
   // Edit state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleVerifyMembership = async () => {
+    if (!user || syncing) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-tiendup");
+      if (error) throw error;
+      const updated = (data as { updated?: number })?.updated ?? 0;
+      if (updated > 0) {
+        trackMembershipVerified("upgraded");
+        await refetchProfile();
+        queryClient.invalidateQueries({ queryKey: ["access-level", user.id] });
+        toast({ title: "¡Membresía activada!", description: "Tu nivel de acceso fue actualizado." });
+      } else {
+        trackMembershipVerified("not_found");
+        toast({
+          title: "Sin suscripción activa",
+          description: "No encontramos un pago reciente. Si acabás de pagar, esperá unos minutos e intentá de nuevo.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      trackMembershipVerified("error");
+      toast({ title: "Error al verificar", description: "Intentá de nuevo o contactanos por WhatsApp.", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
   const [form, setForm] = useState({
     nombre: "",
     apellido: "",
@@ -285,6 +317,14 @@ export function MiPerfil() {
               Ver membresías
               <ArrowRight className="w-4 h-4" />
             </Button>
+            <button
+              onClick={handleVerifyMembership}
+              disabled={syncing}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto disabled:opacity-50"
+            >
+              {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+              {syncing ? "Verificando…" : "Ya pagué — verificar membresía"}
+            </button>
           </CardContent>
         </Card>
       )}

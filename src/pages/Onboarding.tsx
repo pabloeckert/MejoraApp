@@ -5,6 +5,7 @@ import { Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileComplete } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { trackOnboardingCompleted } from "@/lib/analytics";
 import DiagnosticTest from "@/components/DiagnosticTest";
 import { type Step } from "@/components/diagnostic";
 import { SEOHead } from "@/components/SEOHead";
@@ -63,6 +64,7 @@ const Onboarding = () => {
         })
         .eq("user_id", user.id);
       queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      trackOnboardingCompleted(!!ofrece.trim(), !!busca.trim());
     }
     navigate("/", { state: { initialTab: "red" }, replace: true });
   };

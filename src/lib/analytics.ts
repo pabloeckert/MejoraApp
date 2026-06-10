@@ -263,6 +263,20 @@ export function trackUpgradeCTAClick(feature: string, plan: string) {
   track("upgrade_cta_click", { feature, plan });
 }
 
+// ─── Onboarding & Membresía ──────────────────────────────────────
+
+export function trackOnboardingCompleted(hasOfrece: boolean, hasBusca: boolean) {
+  track("onboarding_completed", { has_ofrece: hasOfrece, has_busca: hasBusca });
+}
+
+export function trackCheckoutOpened(level: string) {
+  track("checkout_opened", { level });
+}
+
+export function trackMembershipVerified(result: "upgraded" | "not_found" | "error") {
+  track("membership_verified", { result });
+}
+
 // ─── Mentor IA ──────────────────────────────────────────────────
 
 export function trackMentorMessageSent(conversationId: string, messageLength: number) {

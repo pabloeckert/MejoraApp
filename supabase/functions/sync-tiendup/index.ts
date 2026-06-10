@@ -63,6 +63,7 @@ async function syncUser(email: string, sub: Record<string, unknown>) {
 
   await db.from("profiles").update({
     membership_level:         level,
+    access_level:             level === "n2" ? "N2" : "N1",
     membership_expires_at:    expAt,
     tiendup_subscription_id:  subId,
     last_tiendup_sync:        new Date().toISOString(),
@@ -92,7 +93,7 @@ async function downgradeExpired(): Promise<number> {
   if (!data?.length) return 0;
 
   await db.from("profiles")
-    .update({ membership_level: "n0" })
+    .update({ membership_level: "n0", access_level: "N0" })
     .in("id", data.map((p: { id: string }) => p.id));
 
   return data.length;
