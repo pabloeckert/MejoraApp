@@ -32,6 +32,8 @@ Pages (7, lazy-loaded)
                  └─ Supabase (Auth, DB, Realtime, Edge Functions)
 ```
 
+> `src/services/index.ts` solo barrel-exporta `wallService`, `contentService`, `diagnosticService`. Los servicios `business-mirror.service.ts` y `tiendup.service.ts` se importan directamente desde su archivo.
+
 **Repository layer:** `src/repositories/index.ts` — exports: `wallRepo`, `contentRepo`, `profileRepo`, `diagnosticRepo`, `novedadesRepo`. Abstracción pura sobre Supabase; la lógica de negocio va en `services/`.
 
 **Entry points:**
@@ -42,6 +44,10 @@ Pages (7, lazy-loaded)
 **Páginas:** `/` (Index), `/splash`, `/auth`, `/reset-password`, `/admin`, `/onboarding`, `*` (NotFound).
 
 **`Index.tsx` es la SPA principal** — renderiza tabs por `activeTab` state. Tabs disponibles (no todos en nav): `home`, `contenido`, `diagnostico`, `mirror`, `emergencia`, `eventos`, `circulo`, `red`, `muro`, `comunidad`, `mentor`, `novedades`, `perfil`. Cada tab está envuelta en `<FeatureBoundary feature="...">` para error isolation por tab.
+
+> **Dos features de "mirror" distintas:** `diagnostico` renderiza `<DiagnosticTest>` (Mirror Estratégico — 8 preguntas, el CTA primario), mientras que `mirror` renderiza `<MirrorPage>` (Business Mirror Gamer — tests gamificados). Son completamente separadas.
+
+**Tab inicial:** primera visita del session → `"home"`. Visitas siguientes (via `sessionStorage mc-visits`) → `"red"`. Si viene con `location.state.initialTab`, ese valor tiene prioridad.
 
 **Navegación entre tabs desde código:** `window.dispatchEvent(new CustomEvent("navigate-tab", { detail: "tabId" }))` — escuchado en `Index.tsx`.
 

@@ -16,6 +16,7 @@ import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { useAccessLevel, type AccessLevel } from "@/hooks/useAccessLevel";
 import { useAuth } from "@/contexts/AuthContext";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { FEATURE_REQUIRED_LEVELS } from "@/lib/plans";
 
 interface FeatureGateProps {
   feature: Parameters<typeof useFeatureAccess>[0];
@@ -30,11 +31,13 @@ export function FeatureGate({
   feature,
   children,
   fallback,
-  requiredLevel = "N1",
+  requiredLevel: requiredLevelProp,
 }: FeatureGateProps) {
   const { user } = useAuth();
   const { hasAccess } = useFeatureAccess(feature);
   const { level } = useAccessLevel(user?.id);
+
+  const resolvedRequiredLevel = requiredLevelProp || FEATURE_REQUIRED_LEVELS[feature] || "N1";
 
   if (hasAccess) {
     return <>{children}</>;
@@ -47,7 +50,7 @@ export function FeatureGate({
   return (
     <UpgradePrompt
       currentLevel={level}
-      requiredLevel={requiredLevel}
+      requiredLevel={resolvedRequiredLevel}
     />
   );
 }

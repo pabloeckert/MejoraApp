@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { openCheckout } from "@/services/tiendup.service";
 import type { AccessLevel } from "@/hooks/useAccessLevel";
+import { WA_NUMBER } from "@/data/diagnosticData";
 
 interface UpgradePromptProps {
   currentLevel: AccessLevel;
@@ -18,10 +19,13 @@ interface UpgradePromptProps {
   message?: string;
 }
 
-const LEVEL_INFO: Record<AccessLevel, { label: string; icon: typeof Lock; color: string; productEnvKey?: string }> = {
-  N0: { label: "Gratis", icon: Lock, color: "text-muted-foreground" },
-  N1: { label: "Básico", icon: Star, color: "text-primary", productEnvKey: "VITE_TIENDUP_PRODUCT_N1" },
-  N2: { label: "Premium", icon: Crown, color: "text-amber-500", productEnvKey: "VITE_TIENDUP_PRODUCT_N2" },
+const LEVEL_INFO: Record<
+  AccessLevel,
+  { label: string; icon: typeof Lock; color: string; productEnvKey?: string; urlEnvKey?: string }
+> = {
+  N0: { label: "Free", icon: Lock, color: "text-muted-foreground" },
+  N1: { label: "Miembro", icon: Star, color: "text-primary", productEnvKey: "VITE_TIENDUP_PRODUCT_N1", urlEnvKey: "VITE_TIENDUP_N1_URL" },
+  N2: { label: "Círculo Dorado", icon: Crown, color: "text-amber-500", productEnvKey: "VITE_TIENDUP_PRODUCT_N2", urlEnvKey: "VITE_TIENDUP_N2_URL" },
   ADMIN: { label: "Admin", icon: Crown, color: "text-red-500" },
 };
 
@@ -31,7 +35,14 @@ export function UpgradePrompt({ currentLevel, requiredLevel, message }: UpgradeP
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
-    // Try Tiendup checkout first
+    // 1. Try direct URL if configured
+    const directUrl = info.urlEnvKey ? import.meta.env[info.urlEnvKey] : undefined;
+    if (directUrl) {
+      window.open(directUrl, "_blank");
+      return;
+    }
+
+    // 2. Try Tiendup API checkout with product ID
     const productId = info.productEnvKey ? import.meta.env[info.productEnvKey] : undefined;
 
     if (productId) {
@@ -46,11 +57,11 @@ export function UpgradePrompt({ currentLevel, requiredLevel, message }: UpgradeP
       }
     }
 
-    // Fallback: WhatsApp
+    // 3. Fallback: WhatsApp using target number
     const text = encodeURIComponent(
-      `Hola! Quiero upgrade a ${info.label} (${requiredLevel}). Mi nivel actual es ${currentLevel}.`
+      `¡Hola! Quiero hacer el upgrade a ${info.label} (${requiredLevel}). Mi nivel actual es ${currentLevel}.`
     );
-    window.open(`https://wa.me/?text=${text}`, "_blank");
+    window.open(`https://wa.me/${WA_NUMBER}?text=${text}`, "_blank");
   };
 
   return (

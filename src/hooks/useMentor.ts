@@ -261,7 +261,7 @@ export function useMentorConversations(): UseMentorConversationsReturn {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabase
+      const { data: convData, error: fetchError } = await supabase
         .from("mentor_conversations")
         .select("id, title, created_at, updated_at")
         .order("updated_at", { ascending: false })
@@ -269,30 +269,45 @@ export function useMentorConversations(): UseMentorConversationsReturn {
 
       if (fetchError) throw fetchError;
 
-      // Enrich each conversation with last message and count
-      const enriched = await Promise.all(
-        (data || []).map(async (conv) => {
-          const { data: lastMsg } = await supabase
-            .from("mentor_messages")
-            .select("content")
-            .eq("conversation_id", conv.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+      const conversationsList = convData || [];
+      if (conversationsList.length === 0) {
+        setConversations([]);
+        return;
+      }
 
-          const { count } = await supabase
-            .from("mentor_messages")
-            .select("*", { count: "exact", head: true })
-            .eq("conversation_id", conv.id);
+      // Batch query message details to solve N+1 query problem
+      const convIds = conversationsList.map((c) => c.id);
+      const { data: messagesData, error: msgError } = await supabase
+        .from("mentor_messages")
+        .select("id, conversation_id, content, created_at")
+        .in("conversation_id", convIds)
+        .order("created_at", { ascending: false });
 
-          return {
-            ...conv,
-            is_active: true,
-            message_count: count || 0,
-            last_message: lastMsg?.content?.substring(0, 100) || "",
-          };
-        })
-      );
+      if (msgError) throw msgError;
+
+      const messagesList = messagesData || [];
+
+      // Group messages by conversation ID in memory
+      const messagesByConv: Record<string, typeof messagesList> = {};
+      messagesList.forEach((msg) => {
+        if (!messagesByConv[msg.conversation_id]) {
+          messagesByConv[msg.conversation_id] = [];
+        }
+        messagesByConv[msg.conversation_id].push(msg);
+      });
+
+      // Enrich conversations list with count and last message
+      const enriched = conversationsList.map((conv) => {
+        const convMessages = messagesByConv[conv.id] || [];
+        const lastMsg = convMessages[0]; // First since query ordered DESC
+
+        return {
+          ...conv,
+          is_active: true,
+          message_count: convMessages.length,
+          last_message: lastMsg?.content?.substring(0, 100) || "",
+        };
+      });
 
       setConversations(enriched);
     } catch (e) {

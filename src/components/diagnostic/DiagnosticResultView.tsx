@@ -206,18 +206,7 @@ export const DiagnosticResultView = ({
 
       {/* Action buttons */}
       <div className="flex gap-2">
-        <FeatureGate
-          feature="diagnostic_pdf"
-          fallback={
-            <Button
-              onClick={onComplete}
-              className="flex-1 bg-mc-dark-blue hover:bg-mc-dark-blue/90 text-white py-3 gap-2"
-            >
-              <BookOpen className="w-4 h-4" />
-              Ver contenido
-            </Button>
-          }
-        >
+        <FeatureGate feature="diagnostic_pdf">
           <Button onClick={handleExportPDF} variant="outline" className="flex-1 py-3 gap-2">
             <Download className="w-4 h-4" />
             Descargar PDF

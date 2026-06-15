@@ -58,7 +58,7 @@ const FREEMIUM: PlanFeatures = {
 const FREE_TIER: PlanFeatures = { ...FREEMIUM };
 
 // ── Current Plan ───────────────────────────────────────────────
-export const CURRENT_PLAN_ID = "freemium";
+export const CURRENT_PLAN_ID = "all_free";
 
 const PLANS: Record<string, PlanConfig> = {
   all_free: {
@@ -136,4 +136,16 @@ export const FEATURE_LABELS: Record<FeatureId, { title: string; description: str
     title: "Analytics avanzados",
     description: "Dashboards detallados y métricas de rendimiento.",
   },
+};
+
+// ── Feature Access Requirements (by user membership level) ───
+export const FEATURE_REQUIRED_LEVELS: Record<FeatureId, "N0" | "N1" | "N2" | "ADMIN"> = {
+  diagnostic_history: "N1",
+  diagnostic_pdf: "N1",
+  diagnostic_evolution: "N1",
+  content_recommendations: "N1",
+  premium_content: "N1",
+  community_directory: "N1",
+  priority_support: "N2",
+  advanced_analytics: "ADMIN",
 };
