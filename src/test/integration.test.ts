@@ -206,11 +206,10 @@ describe("PWA Configuration", () => {
 
 // ── Freemium Feature Matrix ─────────────────────────────────────
 describe("Freemium Feature Matrix", () => {
-  it("FREE_TIER restricts premium features", async () => {
-    // In ALL_FREE mode, everything is enabled
-    // But we can verify the FREE_TIER exists and restricts features
+  it("FREEMIUM plan restricts premium features", async () => {
     const { PLAN_CONFIG, CURRENT_PLAN_ID } = await import("@/lib/plans");
-    expect(CURRENT_PLAN_ID).toBe("all_free");
-    expect(PLAN_CONFIG.features.diagnostic_history).toBe(true);
+    expect(CURRENT_PLAN_ID).toBe("freemium");
+    expect(PLAN_CONFIG.features.diagnostic_history).toBe(false);
+    expect(PLAN_CONFIG.features.advanced_analytics).toBe(true);
   });
 });

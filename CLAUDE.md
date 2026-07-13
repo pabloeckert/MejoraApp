@@ -81,9 +81,9 @@ El perfil del usuario en Supabase tiene un campo `access_level` con el enum `Acc
 
 `src/lib/plans.ts` define qué features están habilitadas según el plan activo.
 
-**Plan actual:** `CURRENT_PLAN_ID = "all_free"` — todas las features habilitadas, sin fricción.
+**Plan actual:** `CURRENT_PLAN_ID = "freemium"` — paywalls activos (2026-07-12; restaurado tras revert accidental del auto-commit `fdf9f53`, ver `485a34b`).
 
-Para cambiar a freemium: editar `CURRENT_PLAN_ID = "freemium"` en `plans.ts`.
+Para volver a modo sin fricción: editar `CURRENT_PLAN_ID = "all_free"` en `plans.ts`.
 
 **Hook:** `useFeatureAccess(featureId)` → `{ hasAccess, trackBlocked, trackUpgradePromptShown }`.
 

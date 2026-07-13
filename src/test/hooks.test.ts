@@ -33,23 +33,23 @@ describe("useFeatureAccess", () => {
     localStorage.clear();
   });
 
-  it("hasFeature returns true for all features in ALL_FREE mode", async () => {
+  it("hasFeature restricts premium features in FREEMIUM mode", async () => {
     const { hasFeature } = await import("@/lib/plans");
-    expect(hasFeature("diagnostic_history")).toBe(true);
-    expect(hasFeature("diagnostic_pdf")).toBe(true);
-    expect(hasFeature("content_recommendations")).toBe(true);
-    expect(hasFeature("premium_content")).toBe(true);
-    expect(hasFeature("community_directory")).toBe(true);
-    expect(hasFeature("priority_support")).toBe(true);
+    expect(hasFeature("diagnostic_history")).toBe(false);
+    expect(hasFeature("diagnostic_pdf")).toBe(false);
+    expect(hasFeature("content_recommendations")).toBe(false);
+    expect(hasFeature("premium_content")).toBe(false);
+    expect(hasFeature("community_directory")).toBe(false);
+    expect(hasFeature("priority_support")).toBe(false);
     expect(hasFeature("advanced_analytics")).toBe(true);
-    expect(hasFeature("diagnostic_evolution")).toBe(true);
+    expect(hasFeature("diagnostic_evolution")).toBe(false);
   });
 
-  it("PLAN_CONFIG is all_free by default", async () => {
+  it("PLAN_CONFIG is freemium by default", async () => {
     const { CURRENT_PLAN_ID, PLAN_CONFIG } = await import("@/lib/plans");
-    expect(CURRENT_PLAN_ID).toBe("all_free");
-    expect(PLAN_CONFIG.id).toBe("all_free");
-    expect(PLAN_CONFIG.name).toBe("All Free");
+    expect(CURRENT_PLAN_ID).toBe("freemium");
+    expect(PLAN_CONFIG.id).toBe("freemium");
+    expect(PLAN_CONFIG.name).toBe("Freemium");
   });
 
   it("FEATURE_LABELS has all feature descriptions", async () => {

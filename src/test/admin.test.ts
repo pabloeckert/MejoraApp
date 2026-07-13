@@ -118,19 +118,20 @@ describe("Repository Error Handling", () => {
 
 // ── Feature Flag Tests ──────────────────────────────────────────
 describe("Feature Flags", () => {
-  it("all features enabled in ALL_FREE mode", async () => {
+  it("premium features gated, advanced_analytics open in FREEMIUM mode", async () => {
     const { hasFeature, CURRENT_PLAN_ID } = await import("@/lib/plans");
-    expect(CURRENT_PLAN_ID).toBe("all_free");
+    expect(CURRENT_PLAN_ID).toBe("freemium");
 
-    const features = [
+    const gatedFeatures = [
       "diagnostic_history", "diagnostic_pdf", "diagnostic_evolution",
       "content_recommendations", "premium_content", "community_directory",
-      "priority_support", "advanced_analytics",
+      "priority_support",
     ];
 
-    for (const feature of features) {
-      expect(hasFeature(feature as any)).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+    for (const feature of gatedFeatures) {
+      expect(hasFeature(feature as any)).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
     }
+    expect(hasFeature("advanced_analytics")).toBe(true);
   });
 });
 

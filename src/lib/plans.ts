@@ -58,7 +58,7 @@ const FREEMIUM: PlanFeatures = {
 const FREE_TIER: PlanFeatures = { ...FREEMIUM };
 
 // ── Current Plan ───────────────────────────────────────────────
-export const CURRENT_PLAN_ID = "all_free";
+export const CURRENT_PLAN_ID = "freemium";
 
 const PLANS: Record<string, PlanConfig> = {
   all_free: {
