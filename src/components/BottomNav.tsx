@@ -68,7 +68,7 @@ const BottomNav = ({ activeTab, onTabChange, badges, hasDiagnostic }: BottomNavP
               <span className={cn(
                 "text-caption",
                 isActive
-                  ? tab.mirror ? "font-bold text-brand-azul" : "font-bold"
+                  ? tab.mirror ? "font-medium text-brand-azul" : "font-medium text-brand-azul"
                   : tab.accent ? "font-semibold" : "font-medium"
               )}>
                 {tab.label}

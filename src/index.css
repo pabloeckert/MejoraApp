@@ -155,7 +155,13 @@
     font-family: 'Bw Modelica', 'Segoe UI', system-ui, -apple-system, sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2, h3 {
+    font-family: 'Bw Modelica', system-ui, sans-serif;
+    font-weight: 700;
+    color: hsl(var(--brand-negro));
+  }
+
+  h4, h5, h6 {
     font-family: 'League Spartan', 'Bw Modelica', system-ui, sans-serif;
   }
 }
