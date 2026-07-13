@@ -163,12 +163,14 @@ El chat con el Mentor IA funciona mediante SSE (Server-Sent Events) contra una E
 Los colores de marca viven en `src/index.css` como variables CSS. **No usar hex hardcodeados en componentes.**
 
 ```css
---brand-azul:    225 31% 44%   /* #495F93 — primary */
---brand-rojo:    2 46% 54%     /* #C64E4A — destructive/accent */
---brand-amarillo:44 74% 60%    /* #E5C34B — accent secundario */
---brand-gris:    0 0% 40%      /* #656565 — muted foreground */
---brand-negro:   0 0% 0%       /* #000000 — foreground */
+--brand-azul:    220 67% 31%   /* #1A3D84 — primary */
+--brand-rojo:    353 95% 45%   /* #E1061E — destructive/accent */
+--brand-amarillo:49 93% 52%    /* #F7CC13 — accent secundario */
+--brand-gris:    220 9% 46%    /* #6B7280 — muted foreground */
+--brand-negro:   0 0% 17%      /* #2B2B2B — foreground ("tinta") */
 ```
+
+También existe `tailwind.config.ts` → `extend.colors.mejora` con los mismos hex literales (`azul`, `rojo`, `amarillo`, `tinta`, `gris`, `blanco`) para casos donde se necesite el hex directo en vez de `hsl(var(--brand-*))`.
 
 Usarlos en Tailwind como `text-brand-azul`, `bg-brand-rojo`, etc. (definidos en `tailwind.config.ts`).
 `src/lib/brand.ts` exporta `brand.*` (valores `hsl(...)`) y `MEMBERSHIP_CONFIG` (labels/precios/beneficios por nivel).

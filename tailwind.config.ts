@@ -85,6 +85,15 @@ export default {
           gris:    'hsl(var(--brand-gris))',
           negro:   'hsl(var(--brand-negro))',
         },
+        // Paleta oficial 2026-07 — valores hex literales (independiente de brand.*/mc.*)
+        mejora: {
+          azul:     '#1A3D84',
+          rojo:     '#E1061E',
+          amarillo: '#F7CC13',
+          tinta:    '#2B2B2B',
+          gris:     '#6B7280',
+          blanco:   '#FFFFFF',
+        },
         surface: {
           DEFAULT: '#111118',
           alt:     '#1A1A26',

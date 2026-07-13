@@ -83,7 +83,7 @@ export async function fetchTestBySlug(slug: string, supabaseClient: SupabaseClie
     description: data.description ?? "",
     category: data.category,
     icon: data.icon ?? "Gamepad2",
-    color: data.color ?? "#495F93",
+    color: data.color ?? "#1A3D84",
     bgColor: data.bg_color ?? "bg-blue-50 dark:bg-blue-950/30",
     gameType: (data.game_type as TestDefinition["gameType"]) ?? "classic",
     minAccessLevel: (data.min_access_level as TestDefinition["minAccessLevel"]) ?? "N1",

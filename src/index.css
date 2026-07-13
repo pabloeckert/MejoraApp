@@ -48,12 +48,12 @@
 
 @layer base {
   :root {
-    /* Brand tokens — source of truth */
-    --brand-azul: 225 31% 44%;
-    --brand-rojo: 2 46% 54%;
-    --brand-amarillo: 44 74% 60%;
-    --brand-gris: 0 0% 40%;
-    --brand-negro: 0 0% 0%;
+    /* Brand tokens — source of truth (paleta oficial 2026-07) */
+    --brand-azul: 220 67% 31%;
+    --brand-rojo: 353 95% 45%;
+    --brand-amarillo: 49 93% 52%;
+    --brand-gris: 220 9% 46%;
+    --brand-negro: 0 0% 17%;
 
     --background: 0 0% 98%;
     --foreground: var(--brand-negro);

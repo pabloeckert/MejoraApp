@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Mejora Continua">
   <!-- Círculo principal brand-azul -->
-  <circle cx="32" cy="28" r="18" fill="#495F93"/>
+  <circle cx="32" cy="28" r="18" fill="#1A3D84"/>
   <!-- Acento brand-rojo -->
-  <circle cx="48" cy="44" r="8" fill="#C64E4A"/>
+  <circle cx="48" cy="44" r="8" fill="#E1061E"/>
   <!-- Punto brand-amarillo -->
-  <circle cx="18" cy="48" r="5" fill="#E5C34B"/>
+  <circle cx="18" cy="48" r="5" fill="#F7CC13"/>
   <!-- Línea conectora -->
-  <line x1="32" y1="46" x2="48" y2="44" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <line x1="32" y1="46" x2="48" y2="44" stroke="#2B2B2B" stroke-width="2" stroke-linecap="round"/>
 </svg>

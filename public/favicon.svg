@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Mejora Continua">
-  <rect width="64" height="64" rx="12" fill="#495F93"/>
+  <rect width="64" height="64" rx="12" fill="#1A3D84"/>
   <circle cx="32" cy="26" r="12" fill="white" opacity="0.95"/>
-  <circle cx="46" cy="44" r="7" fill="#C64E4A"/>
-  <circle cx="18" cy="46" r="5" fill="#E5C34B"/>
+  <circle cx="46" cy="44" r="7" fill="#E1061E"/>
+  <circle cx="18" cy="46" r="5" fill="#F7CC13"/>
   <line x1="32" y1="38" x2="46" y2="44" stroke="white" stroke-width="2" stroke-linecap="round"/>
 </svg>
