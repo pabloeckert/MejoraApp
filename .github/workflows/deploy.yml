@@ -49,10 +49,10 @@ jobs:
         run: |
           TOTAL=$(du -sh dist/ | cut -f1)
           echo "📦 Bundle size: $TOTAL"
-          # Warn if bundle > 5MB (gzipped should be ~355KB)
           BYTES=$(du -sb dist/ | cut -f1)
           if [ "$BYTES" -gt 5242880 ]; then
-            echo "::warning::Bundle size ($TOTAL) exceeds 5MB. Check for unintended large files."
+            echo "::error::Bundle size ($TOTAL) exceeds 5MB. Check for unintended large files."
+            exit 1
           fi
 
       - name: Deploy to Vercel

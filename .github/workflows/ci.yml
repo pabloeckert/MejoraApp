@@ -29,7 +29,7 @@ jobs:
         run: npm audit --audit-level=critical || echo "::warning::npm audit found issues — review manually"
 
       - name: Type check
-        run: npx tsc --noEmit -p tsconfig.app.json || true
+        run: npx tsc --noEmit -p tsconfig.app.json
 
       - name: Lint
         run: npm run lint --if-present
@@ -49,7 +49,8 @@ jobs:
           BYTES=$(du -sb dist/ | cut -f1)
           echo "📦 Bundle size: $TOTAL"
           if [ "$BYTES" -gt 5242880 ]; then
-            echo "::warning::Bundle size ($TOTAL) exceeds 5MB"
+            echo "::error::Bundle size ($TOTAL) exceeds 5MB"
+            exit 1
           fi
 
       - name: Upload coverage report

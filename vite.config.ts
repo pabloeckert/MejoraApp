@@ -58,7 +58,8 @@ export default defineConfig({
     },
     // Warn on large chunks
     chunkSizeWarningLimit: 500,
-    // Source maps for production debugging (hidden from bundle)
-    sourcemap: "hidden",
+    // Sourcemaps desactivados: no hay upload a Sentry en el CI, así que
+    // solo agregaban ~6.6MB al bundle deployado y exponían el código fuente
+    sourcemap: false,
   },
 });

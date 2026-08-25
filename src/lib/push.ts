@@ -93,7 +93,7 @@ export async function unsubscribe(userId: string): Promise<void> {
     await subscription.unsubscribe();
   }
 
-  // as any: push_subscriptions no está en tipos hasta que se ejecute 20260505000000_missing_tables.sql
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- push_subscriptions no está en tipos hasta que se ejecute 20260505000000_missing_tables.sql
   await (supabase as any).from("push_subscriptions").delete().eq("user_id", userId);
 }
 
@@ -112,7 +112,7 @@ export async function isSubscribed(): Promise<boolean> {
 async function saveSubscription(userId: string, subscription: PushSubscription): Promise<void> {
   const json = subscription.toJSON();
 
-  // as any: push_subscriptions no está en tipos hasta que se ejecute 20260505000000_missing_tables.sql
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- push_subscriptions no está en tipos hasta que se ejecute 20260505000000_missing_tables.sql
   const { error } = await (supabase as any).from("push_subscriptions").upsert(
     {
       user_id: userId,

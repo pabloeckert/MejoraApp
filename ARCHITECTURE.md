@@ -225,10 +225,17 @@ Admin → AdminLoginForm → verify-admin Edge Function → Role check
 | `verify-admin` | Admin | Verificación de rol admin |
 | `admin-action` | Admin | Acciones administrativas |
 | `generate-content` | Admin | Generación de contenido con IA |
-| `mentor-chat` | Usuario | Chat con Mentor IA |
+| `mentor-chat` | Usuario | Chat con Mentor IA (respuesta única) |
+| `mentor-chat-stream` | Usuario | Chat con Mentor IA vía SSE (streaming) |
+| `activate-membership-manual` | Admin | Activación manual de membresía |
+| `tiendup-checkout` | Usuario | Inicio de checkout de suscripción Tiendup |
+| `tiendup-webhook` | Service | Webhook de eventos de pago Tiendup |
+| `sync-tiendup` | Service | Sincroniza `membership_level` desde Tiendup |
 | `send-push-notification` | Service | Envío de push notifications |
 | `send-diagnostic-email` | Service | Email post-diagnóstico |
 | `send-onboarding-email` | Service | Email de onboarding |
+
+> Nota (2026-08-25): esta tabla estaba desactualizada — documentaba 9 funciones cuando ya existían 14. Ver `CLAUDE.md` para el detalle vivo, que es la fuente que se mantiene al día en cada cambio de Edge Functions.
 
 ---
 
