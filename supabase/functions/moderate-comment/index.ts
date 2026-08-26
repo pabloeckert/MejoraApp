@@ -7,6 +7,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { withMiddleware } from "../_shared/middleware.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
+import { moderateCommentSchema, formatZodError } from "../_shared/schemas.ts";
 
 const MODERATION_PROMPT = `Sos el moderador de MejoraOK, comunidad de negocios argentina. Decidí si un comentario es apropiado.
 APROBÁS: experiencias, preguntas, consejos, reflexiones de negocio.
@@ -72,21 +73,16 @@ Deno.serve(
     const user = ctx.user!;
 
     try {
-      const body = await req.json().catch(() => null);
-      if (!body?.post_id || !body?.content || typeof body.content !== "string" || body.content.trim().length === 0) {
-        return new Response(JSON.stringify({ error: "Datos incompletos." }), { status: 400, headers });
+      const rawBody = await req.json().catch(() => null);
+      const parsed = moderateCommentSchema.safeParse(rawBody);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({ error: formatZodError(parsed.error) }), { status: 400, headers });
       }
 
-      const post_id = typeof body.post_id === "string" ? body.post_id.trim() : "";
-      if (!post_id || post_id.length > 100) {
-        return new Response(JSON.stringify({ error: "post_id inválido." }), { status: 400, headers });
-      }
-      const content = (body.content as string).replace(/<[^>]*>/g, "").trim(); // Strip HTML tags
+      const post_id = parsed.data.post_id;
+      const content = parsed.data.content.replace(/<[^>]*>/g, "").trim(); // Strip HTML tags
       if (content.length === 0) {
         return new Response(JSON.stringify({ error: "El contenido no puede estar vacío." }), { status: 400, headers });
-      }
-      if (content.length > 500) {
-        return new Response(JSON.stringify({ error: "Máximo 500 caracteres." }), { status: 400, headers });
       }
 
       const supabaseAdmin = createClient(

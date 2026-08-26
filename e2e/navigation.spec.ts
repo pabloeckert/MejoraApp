@@ -8,6 +8,9 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Navigation", () => {
   test("root redirects to auth when not logged in", async ({ page }) => {
+    // Splash solo se muestra una vez por sesión (sessionStorage) — se marca
+    // como vista para probar el guard de auth en sí, no la pantalla de splash.
+    await page.addInitScript(() => sessionStorage.setItem("mc-splash-seen", "true"));
     await page.goto("/");
     // Should redirect to /auth
     await expect(page).toHaveURL(/\/auth/, { timeout: 10000 });

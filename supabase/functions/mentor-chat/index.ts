@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { withMiddleware } from "../_shared/middleware.ts";
 import { jsonHeaders } from "../_shared/cors.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
+import { mentorChatSchema, formatZodError } from "../_shared/schemas.ts";
 
 // ── AI Call Chain ───────────────────────────────────────────────
 
@@ -232,22 +233,17 @@ Deno.serve(
     const headers = { ...jsonHeaders(ctx.origin) };
 
     try {
-      const body = await req.json();
-      const { message, conversationId } = body;
+      const rawBody = await req.json().catch(() => null);
+      const parsed = mentorChatSchema.safeParse(rawBody);
 
-      if (!message || typeof message !== "string" || message.trim().length === 0) {
-        return new Response(JSON.stringify({ error: "Mensaje requerido" }), {
+      if (!parsed.success) {
+        return new Response(JSON.stringify({ error: formatZodError(parsed.error) }), {
           status: 400,
           headers,
         });
       }
 
-      if (message.length > 1000) {
-        return new Response(JSON.stringify({ error: "Mensaje demasiado largo (máx 1000 caracteres)" }), {
-          status: 400,
-          headers,
-        });
-      }
+      const { message, conversationId } = parsed.data;
 
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -272,6 +268,24 @@ Deno.serve(
 
       // Get or create conversation
       let activeConversationId = conversationId;
+
+      if (activeConversationId) {
+        // Ownership check — sin esto, cualquier usuario autenticado podría pasar
+        // el conversationId de otro usuario y leer/contaminar su historial (IDOR).
+        const { data: existingConv } = await supabase
+          .from("mentor_conversations")
+          .select("user_id")
+          .eq("id", activeConversationId)
+          .maybeSingle();
+
+        if (!existingConv || existingConv.user_id !== userId) {
+          logWarn("mentor-chat", "conversationId no pertenece al usuario, se crea una nueva", {
+            userId,
+            conversationId: activeConversationId,
+          });
+          activeConversationId = null;
+        }
+      }
 
       if (!activeConversationId) {
         // Create new conversation

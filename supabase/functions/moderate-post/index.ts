@@ -7,6 +7,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { withMiddleware } from "../_shared/middleware.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
+import { moderatePostSchema, formatZodError } from "../_shared/schemas.ts";
 
 const MODERATION_PROMPT = `Sos el moderador de MejoraOK, una comunidad de negocios argentina. Tu trabajo es decidir si un post anónimo del muro es apropiado o no.
 
@@ -121,17 +122,15 @@ Deno.serve(
     const user = ctx.user!;
 
     try {
-      const body = await req.json().catch(() => null);
-      if (!body?.content || typeof body.content !== "string" || body.content.trim().length === 0) {
-        return new Response(JSON.stringify({ error: "El contenido no puede estar vacío." }), { status: 400, headers });
+      const rawBody = await req.json().catch(() => null);
+      const parsed = moderatePostSchema.safeParse(rawBody);
+      if (!parsed.success) {
+        return new Response(JSON.stringify({ error: formatZodError(parsed.error) }), { status: 400, headers });
       }
 
-      const content = (body.content as string).replace(/<[^>]*>/g, "").trim(); // Strip HTML tags
+      const content = parsed.data.content.replace(/<[^>]*>/g, "").trim(); // Strip HTML tags
       if (content.length === 0) {
         return new Response(JSON.stringify({ error: "El contenido no puede estar vacío." }), { status: 400, headers });
-      }
-      if (content.length > 1000) {
-        return new Response(JSON.stringify({ error: "El contenido no puede superar los 1000 caracteres." }), { status: 400, headers });
       }
 
       // Supabase admin client for DB operations

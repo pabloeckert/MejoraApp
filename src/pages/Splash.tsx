@@ -36,7 +36,7 @@ export default function Splash() {
   }, [navigate]);
 
   const fade = (show: boolean, extra = "") =>
-    `transition-opacity duration-[400ms] ease-out ${show ? "opacity-100" : "opacity-0"} ${extra}`;
+    `transition-opacity duration-400 ease-out ${show ? "opacity-100" : "opacity-0"} ${extra}`;
 
   return (
     <div

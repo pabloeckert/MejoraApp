@@ -123,6 +123,7 @@ export default {
       transitionDuration: {
         "150": "150ms",
         "250": "250ms",
+        "400": "400ms",
       },
       transitionTimingFunction: {
         "bounce-in": "cubic-bezier(0.34, 1.56, 0.64, 1)",

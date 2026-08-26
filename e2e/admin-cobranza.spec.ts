@@ -32,9 +32,10 @@ test.describe("Admin Panel — Security", () => {
   });
 
   test("admin API endpoints require auth", async ({ request }) => {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://pwiduojwgkaoxxuautkp.supabase.co";
     // Try to call admin-action without auth
     const response = await request.post(
-      "https://pwiduojwgkaoxxuautkp.supabase.co/functions/v1/admin-action",
+      `${supabaseUrl}/functions/v1/admin-action`,
       {
         headers: { "Content-Type": "application/json" },
         data: { action: "test" },

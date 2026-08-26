@@ -11,6 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { handleCors, jsonHeaders } from "../_shared/cors.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
+import { tiendupEventSchema, formatZodError } from "../_shared/schemas.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -26,8 +27,11 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 async function verifySignature(body: string, signature: string | null): Promise<boolean> {
   if (!WEBHOOK_SECRET) {
-    logWarn("tiendup-webhook", "No TIENDUP_WEBHOOK_SECRET configured — skipping verification");
-    return true;
+    // Fail closed: sin secreto configurado no hay forma de verificar que el
+    // request venga realmente de Tiendup — dejar pasar permitiría que cualquiera
+    // otorgue membresías N1/N2 gratis con un email arbitrario.
+    logError("tiendup-webhook", "TIENDUP_WEBHOOK_SECRET no configurado — rechazando todos los eventos");
+    return false;
   }
   if (!signature) return false;
 
@@ -273,15 +277,26 @@ Deno.serve(async (req: Request) => {
   }
 
   // Parse event
-  let event: TiendupEvent;
+  let rawEvent: unknown;
   try {
-    event = JSON.parse(body);
+    rawEvent = JSON.parse(body);
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,
       headers,
     });
   }
+
+  const parsed = tiendupEventSchema.safeParse(rawEvent);
+  if (!parsed.success) {
+    logWarn("tiendup-webhook", `Evento con shape inválido: ${formatZodError(parsed.error)}`);
+    return new Response(JSON.stringify({ error: "Invalid event shape" }), {
+      status: 400,
+      headers,
+    });
+  }
+
+  const event = parsed.data as TiendupEvent;
 
   logInfo("tiendup-webhook", `Received event: ${event.event}`);
 

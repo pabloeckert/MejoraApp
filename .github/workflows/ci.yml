@@ -10,7 +10,7 @@ jobs:
   test:
     name: Test & Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -36,6 +36,28 @@ jobs:
 
       - name: Run tests with coverage
         run: npm run test:coverage
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E + accessibility tests
+        # continue-on-error hasta confirmar una corrida limpia en un runner real
+        # (verificado localmente: 36/37 — el único caso no probado depende de
+        # red saliente hacia Supabase, que este sandbox de desarrollo no tiene).
+        # Sacar continue-on-error después de la primera corrida verde en CI.
+        run: npx playwright test --project=chromium
+        continue-on-error: true
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
       - name: Build (verify compilation)
         run: npm run build

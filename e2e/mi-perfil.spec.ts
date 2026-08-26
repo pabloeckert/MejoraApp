@@ -9,6 +9,9 @@ import { test, expect } from "@playwright/test";
 
 test.describe("MiPerfil — Unauthenticated", () => {
   test("redirects to auth when not logged in", async ({ page }) => {
+    // Splash solo se muestra una vez por sesión — se marca como vista para
+    // probar el guard de auth en sí, no la pantalla de splash.
+    await page.addInitScript(() => sessionStorage.setItem("mc-splash-seen", "true"));
     await page.goto("/");
     await expect(page).toHaveURL(/\/auth/, { timeout: 10000 });
   });

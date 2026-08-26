@@ -42,7 +42,7 @@ script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https:/
 style-src 'self' 'unsafe-inline'
 img-src 'self' data: blob: https:
 font-src 'self' data:
-connect-src 'self' https://*.supabase.co https://us.i.posthog.com https://o*.ingest.sentry.io wss://*.supabase.co
+connect-src 'self' https://*.supabase.co https://us.i.posthog.com https://*.ingest.sentry.io wss://*.supabase.co
 frame-ancestors 'none'
 base-uri 'self'
 form-action 'self'
