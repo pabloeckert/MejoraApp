@@ -2,8 +2,8 @@
  * Plans & Feature Flags — MejoraApp
  *
  * Define qué features son gratuitas vs premium.
- * Modo actual: ALL_FREE (todo habilitado, cero fricción).
- * Cuando se defina el modelo de negocio, cambiar PLAN_CONFIG a "freemium".
+ * Modo actual: FREEMIUM (paywalls activos, ver CURRENT_PLAN_ID más abajo).
+ * Para volver a modo sin fricción, cambiar CURRENT_PLAN_ID a "all_free".
  *
  * Uso:
  *   import { hasFeature, PLAN_CONFIG } from "@/lib/plans";

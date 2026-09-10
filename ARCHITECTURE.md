@@ -45,10 +45,13 @@ Componentes organizados por dominio:
 ```
 components/
 ├── admin/              # Paneles de administración
-│   ├── AdminCRM.tsx    # CRM con lazy loading
-│   ├── AdminIA.tsx     # Gestión de IA
-│   ├── AdminMuro.tsx   # Moderación del muro
-│   └── crm/            # Sub-componentes del CRM
+│   ├── AdminCobranza.tsx  # Cobranza / pagos
+│   ├── AdminUsuarios.tsx  # Gestión de usuarios
+│   ├── AdminIA.tsx        # Gestión de IA
+│   └── AdminMuro.tsx      # Moderación del muro
+│   # Nota: el módulo AdminCRM.tsx (y su carpeta crm/) fue eliminado
+│   # en el refactor "fase-1: eliminar CRM, NPS, badges, referrals,
+│   # onboarding, AB testing, funnel" — ya no existe en el código.
 ├── auth/               # Autenticación
 │   ├── LoginForm.tsx
 │   ├── SignupForm.tsx
