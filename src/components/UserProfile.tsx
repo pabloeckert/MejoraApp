@@ -26,8 +26,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { DataManagement } from "@/components/DataManagement";
 import { cn } from "@/lib/utils";
+import { sincronizarUsuarioBestEffort } from "@/services/contactosService";
 
 interface UserProfileProps {
   open: boolean;
@@ -115,6 +115,23 @@ export const UserProfile = ({ open, onOpenChange }: UserProfileProps) => {
           : prev
       );
       setEditing(false);
+
+      // Sincronización central con contactos-api (Día 6)
+      sincronizarUsuarioBestEffort({
+        source: "mejora_app",
+        email: user.email,
+        nombre: profile?.display_name || [profile?.nombre, profile?.apellido].filter(Boolean).join(" ") || undefined,
+        cargo: profile?.cargo || undefined,
+        organizacion: profile?.empresa || undefined,
+        metadata: {
+          app_user_id: user.id,
+          empresa: profile?.empresa || undefined,
+          cargo: profile?.cargo || undefined,
+          bio: bio.trim() || undefined,
+          website: website.trim() || undefined,
+          linkedin: linkedin.trim() || undefined,
+        },
+      });
     }
     setSaving(false);
   };

@@ -3,6 +3,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { setSentryUser } from "@/lib/sentry";
 import { identifyUser, resetUser, trackLogout } from "@/lib/analytics";
+import { getStoredPersonaId, sincronizarUsuarioBestEffort } from "@/services/contactosService";
 
 interface AuthContextType {
   session: Session | null;
@@ -25,6 +26,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const syncUserIfNeeded = (u: User) => {
+      if (!getStoredPersonaId() && u.email) {
+        const meta = (u.user_metadata as Record<string, unknown>) || {};
+        sincronizarUsuarioBestEffort({
+          source: "mejora_app",
+          email: u.email,
+          nombre: (meta.full_name as string) || [meta.nombre, meta.apellido].filter(Boolean).join(" ") || u.email.split("@")[0],
+          telefono: (meta.phone as string) || u.phone || undefined,
+          metadata: {
+            app_user_id: u.id,
+          },
+        });
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -35,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: session.user.email,
             created_at: session.user.created_at,
           });
+          syncUserIfNeeded(session.user);
         } else {
           resetUser();
         }
@@ -50,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: session.user.email,
           created_at: session.user.created_at,
         });
+        syncUserIfNeeded(session.user);
       }
     });
 

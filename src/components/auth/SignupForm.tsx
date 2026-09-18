@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { trackSignup } from "@/lib/analytics";
+import { sincronizarUsuarioBestEffort } from "@/services/contactosService";
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
@@ -68,6 +69,17 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
     } else {
       toast({ title: "¡Registro exitoso!", description: "Revisá tu email para confirmar tu cuenta." });
       trackSignup("email");
+
+      // Integración central de contactos (Día 6)
+      sincronizarUsuarioBestEffort({
+        source: "mejora_app",
+        email,
+        nombre: fullName || nombre.trim(),
+        metadata: {
+          nombre: nombre.trim(),
+          apellido: apellido.trim(),
+        },
+      });
     }
     setLoading(false);
   };

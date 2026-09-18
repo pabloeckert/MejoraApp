@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { trackProfileComplete, trackProfileSkip } from "@/lib/analytics";
+import { sincronizarUsuarioBestEffort } from "@/services/contactosService";
 
 interface ProfileCompleteModalProps {
   userId: string;
@@ -40,6 +41,30 @@ const ProfileCompleteModal = ({ userId, onComplete }: ProfileCompleteModalProps)
 
       toast({ title: "¡Perfil completado!", description: "Tus datos fueron guardados." });
       trackProfileComplete(!!phone.trim());
+
+      // Sincronización central con contactos-api (Día 6)
+      supabase.from("profiles")
+        .select("nombre, apellido, email, display_name")
+        .eq("user_id", userId)
+        .maybeSingle()
+        .then(({ data: prof }) => {
+          const nombreCompleto = prof?.display_name || [prof?.nombre, prof?.apellido].filter(Boolean).join(" ");
+          sincronizarUsuarioBestEffort({
+            source: "mejora_app",
+            email: prof?.email || undefined,
+            nombre: nombreCompleto || undefined,
+            telefono: phone.trim() || undefined,
+            cargo: cargo.trim() || undefined,
+            organizacion: empresa.trim() || undefined,
+            metadata: {
+              app_user_id: userId,
+              empresa: empresa.trim(),
+              cargo: cargo.trim(),
+            },
+          });
+        })
+        .catch((e) => console.warn("[contactosService] Error obteniendo perfil para sync:", e));
+
       onComplete();
     } catch (err) {
       console.error(err);
