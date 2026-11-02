@@ -62,11 +62,27 @@
       return;
     }
 
+    // Extracción canónica de atribución desde URL (Enchufe Universal Edificio Comercial)
+    const searchParams =
+      typeof window !== 'undefined' && window.location && window.location.search
+        ? new URLSearchParams(window.location.search)
+        : new URLSearchParams();
+
     const payload = {
       nombre,
       email,
       telefono,
-      canalOrigen
+      canalOrigen,
+      piezaIdAtribucion:
+        searchParams.get('pieza_id_atribucion') ||
+        searchParams.get('pieza_id') ||
+        searchParams.get('utm_content') ||
+        '',
+      utmSource: searchParams.get('utm_source') || '',
+      utmMedium: searchParams.get('utm_medium') || '',
+      utmCampaign: searchParams.get('utm_campaign') || '',
+      utmContent: searchParams.get('utm_content') || '',
+      buyerPersonaId: searchParams.get('buyer_persona_id') || ''
     };
 
     setLoading(true);
