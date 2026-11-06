@@ -33,7 +33,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 - **`1-App Comunidad de Negocios/`**: 23 archivos de documentación legacy (.docx, .pdf, .html, .md, .txt) — 2.4MB de basura del repo
 - **`SESSION-STATE.md`**: Archivo de estado operacional, no pertenece al repo de código
 - **`CONTINUATION-PROMPT.md`**: Template de prompt, no es código
-- **`ProPlan.md`**: Template de prompt para Lovable, no es código
+- **`ProPlan.md`**: Template de prompt legacy, no es código
 
 ### Añadido
 - **`useProfile` hook** (`src/hooks/useProfile.ts`): Hook con React Query para datos de perfil con caching de 5min. Elimina queries directas duplicadas a Supabase.

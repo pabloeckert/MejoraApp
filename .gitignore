@@ -47,8 +47,6 @@ bun.lockb
 yarn.lock
 pnpm-lock.yaml
 
-# Lovable internal
-.lovable/
 
 # Document files — not part of the codebase
 *.docx
