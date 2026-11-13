@@ -1,8 +1,9 @@
-/** DiagnosticIntro — Intro screen for the diagnostic test */
+/** DiagnosticIntro — Pantalla de inmersión al Mirror Estratégico con Manifiesto y estética Bento */
 
+import { ArrowRight, ShieldCheck, Layers, Clock, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeatureGate } from "@/components/FeatureGate";
-import { PERFILES } from "@/data/diagnosticData";
+import { PERFILES, zonaColor } from "@/data/diagnosticData";
 import type { DiagnosticHistoryEntry } from "./types";
 
 interface DiagnosticIntroProps {
@@ -11,71 +12,128 @@ interface DiagnosticIntroProps {
 }
 
 export const DiagnosticIntro = ({ history, onStart }: DiagnosticIntroProps) => (
-  <div className="max-w-xl mx-auto animate-fade-in">
-    <div className="bg-mc-diag-blue rounded-t-xl px-6 py-7 text-center text-white">
-      <h1 className="text-heading font-extrabold leading-tight mb-1">
-        ¿Te animás a ver cómo está tu negocio?
-      </h1>
-      <p className="text-caption opacity-75">8 preguntas. Mirror preciso.</p>
-    </div>
-    <div className="bg-card rounded-b-xl shadow-lg p-6 text-center">
-      <h2 className="text-title font-black text-mc-diag-blue mb-3">
-        Tu proyecto puede estar frenado y no lo estás viendo.
-      </h2>
-      <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-        En 1 minuto detectá exactamente qué está ralentizando tu crecimiento y qué necesitás hacer primero.
-      </p>
-      <div className="flex justify-center gap-8 mb-6">
-        <div className="text-center">
-          <div className="text-2xl font-black text-mc-diag-red">8</div>
-          <div className="text-caption text-muted-foreground">preguntas en 1 min</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-black text-mc-diag-red">100%</div>
-          <div className="text-caption text-muted-foreground">gratuito</div>
-        </div>
+  <div className="max-w-xl mx-auto animate-fade-in space-y-4">
+    {/* Cabecera Bento con Manifiesto Central */}
+    <div
+      className="rounded-2xl px-6 py-7 text-white shadow-md"
+      style={{ backgroundColor: "#1A3D84" }}
+    >
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-[11px] font-extrabold tracking-widest uppercase text-white/90 mb-3">
+        Mirror Estratégico • 4 Dimensiones
       </div>
-      <Button
-        onClick={onStart}
-        className="bg-mc-diag-red hover:bg-mc-diag-red/90 text-white px-8 py-3 text-base font-bold"
-      >
-        {history.length > 0 ? "Hacerlo de nuevo →" : "Empezar Mirror →"}
-      </Button>
+      <h1 className="text-xl sm:text-2xl font-black leading-snug tracking-tight text-white mb-2">
+        “El negocio no puede depender de que estés encima las 24 horas del día.”
+      </h1>
+      <p className="text-xs sm:text-sm text-white/85 leading-relaxed font-medium">
+        Descubrí en menos de 2 minutos dónde está el cuello de botella estructural que hoy frena tu crecimiento.
+      </p>
+    </div>
 
-      <FeatureGate feature="diagnostic_history" variant="inline">
-        <div className="mt-6 pt-4 border-t border-border text-left">
-          <h3 className="text-caption font-bold tracking-widest text-muted-foreground uppercase mb-3">
-            Tus Mirrors anteriores
-          </h3>
-          <div className="space-y-2">
-            {history.map((entry) => {
-              const perfilData = PERFILES[entry.perfil];
-              return (
-                <div
-                  key={entry.id}
-                  className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/50"
-                >
-                  <div
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: perfilData?.color ?? "#888" }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-caption font-medium text-foreground line-clamp-1">
-                      {perfilData?.tagline ?? entry.perfil}
-                    </span>
-                    <span className="text-caption text-muted-foreground block">
-                      {new Date(entry.created_at).toLocaleDateString("es-AR", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })} · Puntaje: {entry.puntaje_total}/40
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+    {/* Cuerpo Principal Bento */}
+    <div className="bg-card border border-border rounded-2xl shadow-sm p-5 sm:p-6 space-y-5">
+      {/* Bloque del Criterio Medular */}
+      <div
+        className="bg-secondary/60 border-l-4 p-4 rounded-r-xl text-left"
+        style={{ borderLeftColor: "#1A3D84" }}
+      >
+        <p className="text-xs font-extrabold uppercase tracking-wider text-foreground mb-1">
+          El Criterio Medular: Verdad sin maquillaje
+        </p>
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+          Tus frustraciones operativas no son falta de capacidad ni de esfuerzo: son síntomas de procesos que crecieron sin estructura. Respondé por lo que realmente pasa hoy en tu empresa, no por lo que debería pasar.
+        </p>
+      </div>
+
+      {/* Grilla Bento de Atributos del Diagnóstico */}
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 text-center">
+        <div className="p-3 rounded-xl bg-secondary/40 border border-border/60 flex flex-col items-center justify-center">
+          <Layers className="w-4 h-4 mb-1 text-[#1A3D84] dark:text-blue-400" />
+          <div className="text-lg sm:text-xl font-black text-foreground">8</div>
+          <div className="text-[11px] font-medium text-muted-foreground leading-tight">
+            Preguntas reales
           </div>
         </div>
+        <div className="p-3 rounded-xl bg-secondary/40 border border-border/60 flex flex-col items-center justify-center">
+          <Clock className="w-4 h-4 mb-1 text-[#E1061E]" />
+          <div className="text-lg sm:text-xl font-black text-foreground">&lt; 2m</div>
+          <div className="text-[11px] font-medium text-muted-foreground leading-tight">
+            Directo al hueso
+          </div>
+        </div>
+        <div className="p-3 rounded-xl bg-secondary/40 border border-border/60 flex flex-col items-center justify-center">
+          <ShieldCheck className="w-4 h-4 mb-1 text-[#1A3D84] dark:text-blue-400" />
+          <div className="text-lg sm:text-xl font-black text-foreground">100%</div>
+          <div className="text-[11px] font-medium text-muted-foreground leading-tight">
+            Confidencial
+          </div>
+        </div>
+      </div>
+
+      {/* Botón Principal de Acción (Gate Cero) */}
+      <Button
+        onClick={onStart}
+        className="w-full min-h-[52px] rounded-xl text-white font-black text-sm sm:text-base tracking-wide shadow-sm transition-transform active:scale-98 flex items-center justify-center gap-2"
+        style={{ backgroundColor: "#1A3D84" }}
+      >
+        <span>
+          {history.length > 0
+            ? "HACER EL MIRROR ESTRATÉGICO DE NUEVO"
+            : "HACER EL MIRROR ESTRATÉGICO (GRATIS)"}
+        </span>
+        <ArrowRight className="w-4 h-4 shrink-0" />
+      </Button>
+
+      {/* Historial de Mirrors previos */}
+      <FeatureGate feature="diagnostic_history" variant="inline">
+        {history.length > 0 && (
+          <div className="pt-4 border-t border-border text-left space-y-3">
+            <h3 className="text-[11px] font-extrabold tracking-widest text-muted-foreground uppercase flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5" />
+              Tus evaluaciones anteriores
+            </h3>
+            <div className="space-y-2">
+              {history.map((entry) => {
+                const perfilData = PERFILES[entry.perfil];
+                const pct = Math.round((entry.puntaje_total / 40) * 100);
+                const { color: badgeColor } = zonaColor(pct);
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between gap-3 p-3 rounded-xl bg-secondary/40 border border-border/60"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: perfilData?.color ?? badgeColor }}
+                      />
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-foreground block truncate">
+                          {perfilData?.tagline ?? entry.perfil}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground block">
+                          {new Date(entry.created_at).toLocaleDateString("es-AR", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <span
+                      className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full shrink-0 text-white"
+                      style={{
+                        backgroundColor: badgeColor,
+                        color: pct >= 40 && pct < 65 ? "#1A1A1A" : "#FFFFFF",
+                      }}
+                    >
+                      {entry.puntaje_total}/40 pts
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </FeatureGate>
     </div>
   </div>
