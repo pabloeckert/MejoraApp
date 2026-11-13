@@ -2,10 +2,10 @@
  * Mentor — Main tab component for Modo Mentor IA
  *
  * Features:
- * - Welcome screen with quick actions (new conversation)
+ * - Welcome screen with quick actions & active 4D Mirror context card
  * - Chat interface with AI mentor
  * - Conversation history sidebar
- * - Personalized context from user profile + diagnostic
+ * - Personalized context from user profile + diagnostic (4D)
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useMentorChat } from "@/hooks/useMentor";
-import { MentorWelcome } from "@/components/mentor/MentorWelcome";
+import { MentorWelcome, type DiagnosticContextSummary } from "@/components/mentor/MentorWelcome";
 import { MentorChat } from "@/components/mentor/MentorChat";
 import { MentorHistory } from "@/components/mentor/MentorHistory";
 import { trackMentorQuickAction, trackMentorNewConversation } from "@/lib/analytics";
@@ -23,11 +23,11 @@ const Mentor = () => {
   const { user } = useAuth();
   const [userName, setUserName] = useState<string | undefined>();
   const [hasDiagnostic, setHasDiagnostic] = useState(false);
+  const [diagnosticSummary, setDiagnosticSummary] = useState<DiagnosticContextSummary | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
 
   const {
     messages,
-    loading,
     sending,
     streamingContent,
     error,
@@ -38,29 +38,42 @@ const Mentor = () => {
     clearError,
   } = useMentorChat();
 
-  // Load user context
+  // Load user context + latest 4D Mirror diagnostic
   useEffect(() => {
     if (!user) return;
 
     const loadContext = async () => {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("empresa, cargo")
+        .select("nombre, empresa, cargo")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (profile?.empresa) {
-        setUserName(user.user_metadata?.nombre || user.email?.split("@")[0]);
+      if (profile?.nombre || profile?.empresa) {
+        setUserName(profile.nombre || user.user_metadata?.nombre || user.email?.split("@")[0]);
       }
 
       const { data: diagnostic } = await supabase
         .from("diagnostic_results")
-        .select("id")
+        .select("id, perfil, puntaje_total, respuestas")
         .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       setHasDiagnostic(!!diagnostic);
+      if (diagnostic) {
+        setDiagnosticSummary({
+          perfil: diagnostic.perfil,
+          puntajeTotal: diagnostic.puntaje_total ?? 0,
+          respuestas:
+            diagnostic.respuestas &&
+            typeof diagnostic.respuestas === "object" &&
+            !Array.isArray(diagnostic.respuestas)
+              ? (diagnostic.respuestas as Record<number, number>)
+              : undefined,
+        });
+      }
     };
 
     loadContext();
@@ -98,16 +111,19 @@ const Mentor = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-primary" />
+      {/* Header Bento 80/10/5/5 */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card rounded-t-2xl">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "#1A3D84" }}
+          >
+            <Bot className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h2 className="text-subtitle font-semibold">Mentor IA</h2>
-            <p className="text-caption text-muted-foreground">
-              Tu asistente de negocios personalizado
+            <h2 className="text-sm font-black text-foreground">Mentor IA Estratégico</h2>
+            <p className="text-[11px] text-muted-foreground">
+              Criterio Medular · Dirección con Contexto 4D
             </p>
           </div>
         </div>
@@ -132,11 +148,12 @@ const Mentor = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden" aria-live="polite">
+      <div className="flex-1 overflow-y-auto" aria-live="polite">
         {showWelcome && messages.length === 0 ? (
           <MentorWelcome
             userName={userName}
             hasDiagnostic={hasDiagnostic}
+            diagnosticSummary={diagnosticSummary}
             onQuickAction={handleQuickAction}
           />
         ) : (

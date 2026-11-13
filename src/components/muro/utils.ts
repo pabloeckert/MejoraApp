@@ -4,6 +4,26 @@ export const MAX_LENGTH = 500;
 export const COMMENT_MAX_LENGTH = 300;
 export const POSTS_PER_PAGE = 20;
 
+const LEADER_ALIASES = [
+  "Dueño PyME · Sector Industrial",
+  "Director General · Consumo Masivo",
+  "Socio Gerente · Servicios B2B",
+  "Fundador · Comercio Mayorista",
+  "Directivo · Agroindustria",
+  "Titular · Empresa Familiar",
+  "CEO PyME · Logística y Distribución",
+  "Socio Director · Salud y Servicios",
+];
+
+export const getAnonymousLeaderAlias = (seed: string): string => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  return LEADER_ALIASES[Math.abs(hash) % LEADER_ALIASES.length];
+};
+
 export const timeAgo = (date: string): string => {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);

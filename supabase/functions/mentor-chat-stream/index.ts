@@ -269,6 +269,43 @@ async function streamOpenRouter(
 
 // ── Context helpers (same logic as mentor-chat) ──────────────────
 
+const DIMENSION_QUESTIONS: Array<{
+  id: number;
+  dom: "personal" | "organizacional" | "comercial" | "empresarial";
+  sec: "personal" | "organizacional" | "comercial" | "empresarial";
+}> = [
+  { id: 1, dom: "organizacional", sec: "personal" },
+  { id: 2, dom: "comercial", sec: "empresarial" },
+  { id: 3, dom: "comercial", sec: "personal" },
+  { id: 4, dom: "organizacional", sec: "personal" },
+  { id: 5, dom: "empresarial", sec: "organizacional" },
+  { id: 6, dom: "comercial", sec: "empresarial" },
+  { id: 7, dom: "empresarial", sec: "personal" },
+  { id: 8, dom: "comercial", sec: "empresarial" },
+];
+
+function computeFourDimensions(respuestas: unknown): string | null {
+  if (!respuestas || typeof respuestas !== "object") return null;
+  const scores = { personal: 0, organizacional: 0, comercial: 0, empresarial: 0 };
+  const maxPorArea = { personal: 0, organizacional: 0, comercial: 0, empresarial: 0 };
+  const record = respuestas as Record<string, number>;
+
+  DIMENSION_QUESTIONS.forEach((q, idx) => {
+    const raw = Array.isArray(respuestas) ? respuestas[idx] : record[String(q.id)];
+    const val = typeof raw === "number" ? raw : 3;
+    scores[q.dom] += val * 0.7;
+    scores[q.sec] += val * 0.3;
+    maxPorArea[q.dom] += 5 * 0.7;
+    maxPorArea[q.sec] += 5 * 0.3;
+  });
+
+  const dims = (Object.keys(scores) as Array<keyof typeof scores>).map((area) => {
+    const pct = Math.round((scores[area] / (maxPorArea[area] || 1)) * 100);
+    return `${area}: ${pct}%`;
+  });
+  return dims.join(", ");
+}
+
 async function buildUserContext(
   supabase: ReturnType<typeof createClient>,
   userId: string
@@ -282,7 +319,7 @@ async function buildUserContext(
         .maybeSingle(),
       supabase
         .from("diagnostic_results")
-        .select("score, perfil")
+        .select("puntaje_total, perfil, respuestas")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -294,8 +331,13 @@ async function buildUserContext(
     if (profile?.empresa) parts.push(`Empresa: ${profile.empresa}`);
     if (profile?.cargo) parts.push(`Cargo: ${profile.cargo}`);
     if (profile?.industry) parts.push(`Industria: ${profile.industry}`);
-    if (diagnostic?.perfil)
-      parts.push(`Perfil Mirror: ${diagnostic.perfil} (${diagnostic.score} puntos)`);
+    if (diagnostic?.perfil) {
+      parts.push(`Perfil Mirror: ${diagnostic.perfil} (${diagnostic.puntaje_total ?? 0}/40 puntos)`);
+      const dimsSummary = computeFourDimensions(diagnostic.respuestas);
+      if (dimsSummary) {
+        parts.push(`Dimensiones 4D: ${dimsSummary}`);
+      }
+    }
     if (badges?.length) parts.push(`Badges: ${badges.map((b) => b.badge_id).join(", ")}`);
 
     return parts.length > 0 ? parts.join("\n") : "Sin perfil completado aún.";
@@ -318,17 +360,20 @@ async function getSystemPrompt(supabase: ReturnType<typeof createClient>): Promi
 }
 
 function getDefaultSystemPrompt(): string {
-  return `Sos el Mentor IA de Mejora Continua, una comunidad de líderes empresariales argentinos. Tu rol es ser un mentor de negocios personalizado.
+  return `Sos el Mentor IA Estratégico de Mejora Continua, la autoridad de dirección para dueños y líderes de PyMEs en Argentina.
 
-REGLAS:
-- Respondé siempre en español argentino con voseo
-- Sé directo, práctico y accionable
-- Basá tus respuestas en el contexto del usuario (empresa, cargo, industria, resultado Mirror)
-- Cuando sea posible, sugerí contenido de la plataforma o pasos concretos
-- No inventes datos — si no tenés información, pedila
-- Mantené un tono profesional pero cercano, como un mentor experimentado
-- Limitá tus respuestas a 200 palabras máximo para mantener el chat ágil
-- Si el usuario pregunta algo fuera del ámbito de negocios, redirigilo amablemente`;
+MANIFIESTO INTERNO Y CRITERIO MEDULAR (OBLIGATORIO EN CADA RESPUESTA):
+1. La crítica va al sistema y al proceso, jamás a la persona: erradicá la culpa moral del líder y demostrá qué método, proceso o estructura falta construir para resolver los incendios.
+2. Verdad sin maquillaje con calidez real: sé directo, claro y empático. Nada de motivación vacía; diagnosticá el cuello de botella y entregá dirección táctica concreta.
+3. Indispensabilidad metodológica: conectá cada recomendación con el orden de Mejora Continua, el resultado real del Mirror Estratégico del usuario (sus 4 Dimensiones y su arquetipo) y la Red de Líderes.
+
+REGLAS OPERATIVAS:
+- Respondé siempre en español argentino con voseo.
+- Basá tus respuestas en el contexto real del usuario (empresa, cargo, industria, arquetipo Mirror y porcentajes en sus 4 Dimensiones: Personal, Organizacional, Comercial y Empresarial).
+- Priorizá siempre atacar la dimensión con menor puntaje o el cuello de botella mencionado.
+- Entregá pasos accionables concretos (máximo 220 palabras para mantener el chat ágil).
+- No inventes datos que no estén en el contexto; si falta un número clave (facturación, margen o dotación), pedilo.
+- Si preguntan algo ajeno a la dirección de empresas, redirigilo al foco empresarial.`;
 }
 
 async function getConversationHistory(

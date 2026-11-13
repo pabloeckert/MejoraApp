@@ -11,10 +11,10 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   MessageSquare,
   Loader2,
-  AlertCircle,
   RefreshCw,
   Send,
   ArrowDown,
+  ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,17 @@ import { CommunityRules } from "@/components/CommunityRules";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { trackPublishPost } from "@/lib/analytics";
 import { ReportDialog } from "@/components/ReportDialog";
-import { PostCard, PostSkeleton, type WallPost, type PostType, POST_TYPE_CONFIG, MAX_LENGTH, POSTS_PER_PAGE } from "@/components/muro";
+import {
+  PostCard,
+  PostSkeleton,
+  type WallPost,
+  type PostType,
+  type WallCategory,
+  POST_TYPE_CONFIG,
+  WALL_CATEGORIES,
+  MAX_LENGTH,
+  POSTS_PER_PAGE,
+} from "@/components/muro";
 import { fetchWallPostsPage } from "@/services/wall.service";
 
 const Muro = () => {
@@ -58,6 +68,7 @@ const Muro = () => {
 
   const [newPost, setNewPost] = useState("");
   const [postType, setPostType] = useState<PostType>("consulta");
+  const [selectedCategory, setSelectedCategory] = useState<WallCategory | null>(null);
   const [filterType, setFilterType] = useState<PostType | "all">("all");
   const [posting, setPosting] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ id: string; content: string } | null>(null);
@@ -148,8 +159,14 @@ const Muro = () => {
 
   // POST via Edge Function
   const handlePost = useCallback(async () => {
-    const content = newPost.trim();
-    if (!content || posting || !user) return;
+    const rawContent = newPost.trim();
+    if (!rawContent || posting || !user) return;
+
+    const prefixed =
+      selectedCategory && !rawContent.startsWith("[")
+        ? `[${selectedCategory}] ${rawContent}`
+        : rawContent;
+    const content = prefixed.slice(0, MAX_LENGTH);
 
     setPosting(true);
     try {
@@ -160,7 +177,8 @@ const Muro = () => {
         toast({ title: "Post no publicado", description: data.reason, variant: "destructive" });
       } else if (data?.success) {
         setNewPost("");
-        toast({ title: "¡Publicado!", description: "Tu post ya está en el muro." });
+        setSelectedCategory(null);
+        toast({ title: "¡Publicado!", description: "Tu consulta ya está en el Muro." });
         trackPublishPost(content.length);
         refetch();
         supabase.functions.invoke("send-push-notification", {
@@ -174,7 +192,7 @@ const Muro = () => {
     } finally {
       setPosting(false);
     }
-  }, [newPost, posting, user, toast, refetch, postType]);
+  }, [newPost, selectedCategory, posting, user, toast, refetch, postType]);
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -191,15 +209,21 @@ const Muro = () => {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Vista N0: primeros 5 posts con blur + CTA sticky
+  // Vista N0: primeros 5 posts con blur + CTA sticky 80/10/5/5
   if (isN0) {
     return (
-      <div className="relative space-y-4 animate-fade-in pb-20">
-        {/* Header */}
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold text-foreground">Muro Anónimo</h1>
-          <p className="text-sm text-muted-foreground">
-            Consultás de líderes, sin nombres, sin ventas.
+      <div className="relative space-y-4 animate-fade-in pb-24">
+        {/* Cabecera Bento N0 con Criterio Medular */}
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#1A3D84] dark:text-blue-400 shrink-0" />
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#1A3D84] dark:text-blue-400">
+              Espacio Seguro · Red de Líderes
+            </span>
+          </div>
+          <h1 className="text-xl font-black text-foreground">Muro Anónimo de Líderes</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            Consultas reales de dueños PyME con identidad protegida. Acá la crítica va al proceso, jamás a la persona.
           </p>
         </div>
 
@@ -230,18 +254,17 @@ const Muro = () => {
               ))}
         </div>
 
-        {/* CTA sticky bottom */}
-        <div
-          className="fixed bottom-16 left-0 right-0 px-4 py-3 z-30"
-          style={{ background: '#0D0D0D', borderTop: '1px solid #2A2A3A' }}
-        >
-          <button
-            onClick={() => setUpgradeOpen(true)}
-            className="w-full h-12 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-            style={{ background: '#D9072D' }}
-          >
-            Publicá tu consulta → Ser Miembro
-          </button>
+        {/* CTA sticky bottom 80/10/5/5 */}
+        <div className="fixed bottom-16 left-0 right-0 px-4 py-3 z-30 bg-card/95 backdrop-blur border-t border-border shadow-nav">
+          <div className="max-w-lg mx-auto">
+            <button
+              onClick={() => setUpgradeOpen(true)}
+              className="w-full min-h-[48px] rounded-xl font-extrabold text-sm text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 active:scale-98"
+              style={{ backgroundColor: "#1A3D84" }}
+            >
+              Publicá tu consulta en el Muro → Ser Miembro
+            </button>
+          </div>
         </div>
 
         <UpgradeModal
@@ -277,26 +300,32 @@ const Muro = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header Bento */}
+      <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-xl font-bold text-foreground">Muro Anónimo</h1>
-          <p className="text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-[#1A3D84] dark:text-blue-400 shrink-0" />
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#1A3D84] dark:text-blue-400">
+              Espacio Seguro · Criterio Medular
+            </span>
+          </div>
+          <h1 className="text-xl font-black text-foreground">Muro de Líderes Anónimo</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {allPosts.length > 0
-              ? `${allPosts.length} post${allPosts.length !== 1 ? "s" : ""} · Compartí tus dudas. Sin nombres, sin ventas.`
-              : "Compartí tus dudas y experiencias. Sin nombres, sin ventas."}
+              ? `${allPosts.length} consulta${allPosts.length !== 1 ? "s" : ""} · Identidad protegida. Cero ventas.`
+              : "Confesá tu cuello de botella real. Identidad protegida, cero ventas."}
           </p>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => refetch()} disabled={isRefetching}>
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => refetch()} disabled={isRefetching} aria-label="Actualizar muro">
           <RefreshCw className={`w-4 h-4 ${isRefetching ? "animate-spin" : ""}`} />
         </Button>
       </div>
 
       {/* New post form */}
-      <Card>
-        <CardContent className="p-3 space-y-2">
+      <Card className="border-border rounded-2xl shadow-sm">
+        <CardContent className="p-4 space-y-3">
           {/* Post type selector */}
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {(Object.keys(POST_TYPE_CONFIG) as PostType[]).map((type) => {
               const config = POST_TYPE_CONFIG[type];
               const isSelected = postType === type;
@@ -304,7 +333,7 @@ const Muro = () => {
                 <button
                   key={type}
                   onClick={() => setPostType(type)}
-                  className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full transition-all ${
+                  className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full transition-all ${
                     isSelected
                       ? `${config.bgColor} ${config.color} ring-1 ring-current/20`
                       : "text-muted-foreground hover:bg-muted"
@@ -316,11 +345,35 @@ const Muro = () => {
             })}
           </div>
 
+          {/* Selector de eje operativo (Sprint 2) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground shrink-0 mr-1">
+              Eje:
+            </span>
+            {WALL_CATEGORIES.map((cat) => {
+              const active = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(active ? null : cat)}
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors shrink-0 ${
+                    active
+                      ? "bg-[#1A3D84] text-white border-[#1A3D84]"
+                      : "bg-secondary/50 text-muted-foreground border-border hover:border-[#1A3D84]/40"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+
           <Textarea
-            placeholder="¿Qué te está pasando con tu negocio? Acá es anónimo..."
+            placeholder="Contá el problema real de tu empresa sin nombres ni filtros. La crítica va al proceso..."
             value={newPost}
             onChange={(e) => setNewPost(e.target.value.slice(0, MAX_LENGTH))}
-            className="min-h-[80px] resize-none border-0 bg-secondary/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+            className="min-h-[88px] resize-none border border-border/60 bg-secondary/40 rounded-xl focus-visible:ring-1 focus-visible:ring-[#1A3D84]/40"
             maxLength={MAX_LENGTH}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -343,15 +396,21 @@ const Muro = () => {
             </span>
             <div className="flex items-center gap-2">
               <span className="text-caption text-muted-foreground hidden sm:inline">Ctrl+Enter</span>
-              <Button size="sm" onClick={handlePost} disabled={!newPost.trim() || posting} className="gap-1.5">
+              <Button
+                size="sm"
+                onClick={handlePost}
+                disabled={!newPost.trim() || posting}
+                className="gap-1.5 min-h-[40px] px-4 rounded-xl font-bold text-white"
+                style={{ backgroundColor: "#1A3D84" }}
+              >
                 {posting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                Publicar
+                Publicar consulta
               </Button>
             </div>
           </div>
           <div className="flex items-start gap-1.5 text-caption text-muted-foreground">
-            <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
-            <span>Tu post es anónimo y moderado por IA. No se permiten ventas, promos ni datos personales.</span>
+            <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#1A3D84] dark:text-blue-400" />
+            <span>Identidad protegida con seudónimo ejecutivo y moderación IA bajo el Criterio Medular. Cero ventas ni datos personales.</span>
           </div>
         </CardContent>
       </Card>

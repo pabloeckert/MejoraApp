@@ -1,4 +1,4 @@
-/** PostCard — Individual wall post with likes, comments, and actions */
+/** PostCard — Individual wall post with protected leader alias, likes, comments, and actions */
 
 import { memo } from "react";
 import {
@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Trash2,
   Flag,
+  ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import type { WallComment } from "@/hooks/useWallInteractions";
 import type { WallPost } from "./types";
 import { POST_TYPE_CONFIG } from "./types";
 import { CommentItem } from "./CommentItem";
-import { timeAgo, formatFullDate, COMMENT_MAX_LENGTH } from "./utils";
+import { timeAgo, formatFullDate, COMMENT_MAX_LENGTH, getAnonymousLeaderAlias } from "./utils";
 
 interface PostCardProps {
   post: WallPost;
@@ -57,121 +58,166 @@ export const PostCard = memo(
     onCommentTextChange,
     submittingComment,
     userId,
-  }: PostCardProps) => (
-    <Card className="hover:shadow-sm transition-shadow">
-      <CardContent className="p-3">
-        {post.post_type && post.post_type !== "consulta" && (
-          <div className="mb-2">
-            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${POST_TYPE_CONFIG[post.post_type].bgColor} ${POST_TYPE_CONFIG[post.post_type].color}`}>
-              {POST_TYPE_CONFIG[post.post_type].emoji} {POST_TYPE_CONFIG[post.post_type].label}
-            </span>
-          </div>
-        )}
-        <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{post.content}</p>
+  }: PostCardProps) => {
+    const typeConfig = POST_TYPE_CONFIG[post.post_type ?? "consulta"] ?? POST_TYPE_CONFIG.consulta;
 
-        <div className="flex items-center justify-between mt-2.5">
-          <div className="flex items-center gap-3">
-            <span className="text-caption text-muted-foreground" title={formatFullDate(post.created_at)}>
-              {isOwn ? "Vos" : "Anónimo"} · {timeAgo(post.created_at)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {isOwn ? (
-              <button
-                onClick={() => onDelete(post.id)}
-                className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-full ${
-                  confirmingDelete
-                    ? "text-destructive bg-destructive/10 font-medium"
-                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                }`}
-                aria-label={confirmingDelete ? "Confirmar eliminación del post" : "Eliminar post"}
-                title={confirmingDelete ? "Tocá de nuevo para confirmar" : "Eliminar post"}
+    return (
+      <Card className="border-border rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          {/* Cabecera con Seudónimo Ejecutivo Protegido */}
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "rgba(26, 61, 132, 0.08)" }}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                {confirmingDelete && <span className="text-caption">¿Eliminar?</span>}
-              </button>
-            ) : (
-              <button
-                onClick={() => onReport(post.id, post.content)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-amber-500 transition-colors px-2 py-1 rounded-full hover:bg-amber-500/5"
-                aria-label="Reportar contenido inapropiado"
-                title="Reportar contenido"
-              >
-                <Flag className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <button
-              onClick={() => onLike(post.id)}
-              className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-full
-                ${isLiked ? "text-destructive bg-destructive/10" : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"}`}
-              aria-label={isLiked ? "Quitar me gusta" : "Dar me gusta"}
-              aria-pressed={isLiked}
-            >
-              <Heart className={`w-3.5 h-3.5 transition-transform ${isLiked ? "fill-current scale-110" : ""}`} />
-              {post.likes_count > 0 && <span>{post.likes_count}</span>}
-            </button>
-
-            <button
-              onClick={() => onToggle(post.id)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-full hover:bg-secondary"
-              aria-expanded={expanded}
-              aria-label={expanded ? "Ocultar comentarios" : "Ver comentarios"}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              {post.comments_count > 0 && <span>{post.comments_count}</span>}
-              {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-          </div>
-        </div>
-
-        {expanded && (
-          <div className="mt-3 pt-3 border-t border-border/50 space-y-1">
-            {loadingComments ? (
-              <div className="flex justify-center py-3">
-                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                <ShieldCheck className="w-4 h-4 text-[#1A3D84] dark:text-blue-400" />
               </div>
-            ) : (
-              <>
-                {comments.length === 0 && (
-                  <p className="text-caption text-muted-foreground text-center py-2">
-                    Sin respuestas todavía. Sé el primero.
-                  </p>
-                )}
-                {comments.map((c) => (
-                  <CommentItem key={c.id} comment={c} isOwn={c.user_id === userId} />
-                ))}
-              </>
-            )}
-
-            <div className="flex gap-2 items-end mt-2 pt-2 border-t border-border/30">
-              <Textarea
-                placeholder="Escribí una respuesta..."
-                value={commentText}
-                onChange={(e) => onCommentTextChange(post.id, e.target.value.slice(0, COMMENT_MAX_LENGTH))}
-                className="min-h-[44px] text-xs resize-none border-0 bg-secondary/50 focus-visible:ring-1 focus-visible:ring-primary/30 py-3"
-                maxLength={COMMENT_MAX_LENGTH}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    onComment(post.id);
-                  }
-                }}
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-9 w-9 p-0 shrink-0"
-                onClick={() => onComment(post.id)}
-                disabled={!commentText.trim() || submittingComment}
-              >
-                {submittingComment ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-              </Button>
+              <div className="min-w-0">
+                <span className="text-xs font-extrabold text-foreground block truncate">
+                  {isOwn ? "Tu publicación · Identidad protegida" : getAnonymousLeaderAlias(post.id)}
+                </span>
+                <span
+                  className="text-[11px] text-muted-foreground block"
+                  title={formatFullDate(post.created_at)}
+                >
+                  {timeAgo(post.created_at)}
+                </span>
+              </div>
             </div>
-            <span className="text-caption text-muted-foreground">{commentText.length}/{COMMENT_MAX_LENGTH}</span>
+
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${typeConfig.bgColor} ${typeConfig.color}`}
+            >
+              {typeConfig.emoji} {typeConfig.label}
+            </span>
           </div>
-        )}
-      </CardContent>
-    </Card>
-  )
+
+          <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">
+            {post.content}
+          </p>
+
+          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border/50">
+            <span className="text-[11px] text-muted-foreground font-medium">
+              Espacio Seguro · Criterio Medular
+            </span>
+            <div className="flex items-center gap-1.5">
+              {isOwn ? (
+                <button
+                  onClick={() => onDelete(post.id)}
+                  className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-full ${
+                    confirmingDelete
+                      ? "text-destructive bg-destructive/10 font-medium"
+                      : "text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                  }`}
+                  aria-label={confirmingDelete ? "Confirmar eliminación del post" : "Eliminar post"}
+                  title={confirmingDelete ? "Tocá de nuevo para confirmar" : "Eliminar post"}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {confirmingDelete && <span className="text-caption">¿Eliminar?</span>}
+                </button>
+              ) : (
+                <button
+                  onClick={() => onReport(post.id, post.content)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-amber-500 transition-colors px-2 py-1 rounded-full hover:bg-amber-500/5"
+                  aria-label="Reportar contenido inapropiado"
+                  title="Reportar contenido"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                onClick={() => onLike(post.id)}
+                className={`flex items-center gap-1 text-xs transition-colors px-2.5 py-1 rounded-full ${
+                  isLiked
+                    ? "text-[#E1061E] bg-[#E1061E]/10 font-bold"
+                    : "text-muted-foreground hover:text-[#E1061E] hover:bg-[#E1061E]/5"
+                }`}
+                aria-label={isLiked ? "Quitar me gusta" : "Dar me gusta"}
+                aria-pressed={isLiked}
+              >
+                <Heart
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    isLiked ? "fill-current scale-110" : ""
+                  }`}
+                />
+                {post.likes_count > 0 && <span>{post.likes_count}</span>}
+              </button>
+
+              <button
+                onClick={() => onToggle(post.id)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1 rounded-full hover:bg-secondary"
+                aria-expanded={expanded}
+                aria-label={expanded ? "Ocultar comentarios" : "Ver comentarios"}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                {post.comments_count > 0 && <span>{post.comments_count}</span>}
+                {expanded ? (
+                  <ChevronUp className="w-3 h-3" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {expanded && (
+            <div className="mt-3 pt-3 border-t border-border/50 space-y-1">
+              {loadingComments ? (
+                <div className="flex justify-center py-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  {comments.length === 0 && (
+                    <p className="text-caption text-muted-foreground text-center py-2">
+                      Sin respuestas todavía. Aportá tu mirada enfocada en el proceso.
+                    </p>
+                  )}
+                  {comments.map((c) => (
+                    <CommentItem key={c.id} comment={c} isOwn={c.user_id === userId} />
+                  ))}
+                </>
+              )}
+
+              <div className="flex gap-2 items-end mt-2 pt-2 border-t border-border/30">
+                <Textarea
+                  placeholder="Aportá una solución o perspectiva enfocada en el proceso..."
+                  value={commentText}
+                  onChange={(e) =>
+                    onCommentTextChange(post.id, e.target.value.slice(0, COMMENT_MAX_LENGTH))
+                  }
+                  className="min-h-[44px] text-xs resize-none border-0 bg-secondary/50 focus-visible:ring-1 focus-visible:ring-primary/30 py-3"
+                  maxLength={COMMENT_MAX_LENGTH}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      onComment(post.id);
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 w-9 p-0 shrink-0"
+                  onClick={() => onComment(post.id)}
+                  disabled={!commentText.trim() || submittingComment}
+                >
+                  {submittingComment ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                </Button>
+              </div>
+              <span className="text-caption text-muted-foreground">
+                {commentText.length}/{COMMENT_MAX_LENGTH}
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 );
 PostCard.displayName = "PostCard";
