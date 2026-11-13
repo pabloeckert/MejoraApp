@@ -1,5 +1,6 @@
 /** DiagnosticResultView — Results display with recommendations and CTAs */
 
+import { useMemo } from "react";
 import { MessageCircle, BookOpen, Download, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +9,9 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useContentRecommendations } from "@/hooks/useContentRecommendations";
 import { FeatureGate } from "@/components/FeatureGate";
-import { WA_NUMBER } from "@/data/diagnosticData";
+import { WA_NUMBER, calcularScores, NOMBRES_AREA, type Area } from "@/data/diagnosticData";
+import { AreaBar } from "@/components/diagnostic/AreaBar";
+import { GaugeGlobal } from "@/components/diagnostic/GaugeGlobal";
 import {
   trackShareDiagnosticWA,
   trackDiagnosticCTAPerfil,
@@ -35,6 +38,7 @@ interface DiagnosticResultViewProps {
   perfil: string;
   perfilData: PerfilData;
   puntaje: number;
+  answers?: Record<number, number>;
   onComplete: () => void;
   userName?: string;
 }
@@ -43,11 +47,28 @@ export const DiagnosticResultView = ({
   perfil,
   perfilData,
   puntaje,
+  answers = {},
   onComplete,
   userName,
 }: DiagnosticResultViewProps) => {
   const { recommendations, loading: loadingRecs } = useContentRecommendations(perfil, 3);
   const { toast } = useToast();
+
+  const scores = useMemo(() => calcularScores(answers), [answers]);
+  const areaList = useMemo(() => {
+    if (!scores) return [];
+    return (Object.keys(scores) as Area[]).map((area) => ({
+      key: area,
+      nombre: NOMBRES_AREA[area],
+      porcentaje: scores[area],
+    }));
+  }, [scores]);
+
+  const puntajeGlobalPorcentaje = useMemo(() => {
+    if (!scores) return Math.round((puntaje / 40) * 100);
+    const vals = Object.values(scores);
+    return Math.round(vals.reduce((a, b) => a + b, 0) / (vals.length || 1));
+  }, [scores, puntaje]);
 
   const waMsg = encodeURIComponent(
     `Hola, hice el Mirror de Mejora Continua. Mi Mirror es: "${perfilData.tagline}". Quiero hablar.`
@@ -86,6 +107,38 @@ export const DiagnosticResultView = ({
 
       <div className="bg-secondary border-l-4 border-mc-diag-blue p-4 rounded-r-xl">
         <p className="text-sm text-foreground leading-relaxed">{perfilData.desc}</p>
+      </div>
+
+      {/* Bento Grid: 4 Dimensiones & Madurez Estructural */}
+      <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div>
+            <h3 className="text-sm font-extrabold tracking-wide uppercase text-foreground">
+              Madurez en las 4 Dimensiones
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Evaluación estructural del sistema de negocio
+            </p>
+          </div>
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-secondary text-foreground">
+            {puntaje} / 40 pts
+          </span>
+        </div>
+
+        {/* Gauge de madurez global */}
+        <GaugeGlobal value={puntajeGlobalPorcentaje} size="sm" />
+
+        {/* 4 Dimensiones con AreaBar */}
+        <div className="pt-1">
+          {areaList.map((area, idx) => (
+            <AreaBar
+              key={area.key}
+              nombre={area.nombre}
+              porcentaje={area.porcentaje}
+              delay={idx * 150}
+            />
+          ))}
+        </div>
       </div>
 
       <div>

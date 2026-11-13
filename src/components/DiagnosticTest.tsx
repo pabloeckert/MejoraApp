@@ -186,6 +186,7 @@ const DiagnosticTest = ({
           perfil={perfil}
           perfilData={perfilData}
           puntaje={puntaje}
+          answers={answers}
           onComplete={onComplete}
           userName={user?.email?.split("@")[0]}
         />

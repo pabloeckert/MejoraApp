@@ -1,14 +1,19 @@
-export interface DiagnosticQuestion {
-  id: number;
-  title: string;
-  sub: string;
-  opts: DiagnosticOption[];
-}
+export type Area = "personal" | "organizacional" | "comercial" | "empresarial";
+export type Scores = Record<Area, number>;
 
 export interface DiagnosticOption {
   label: string;
   text: string;
   score: number;
+}
+
+export interface DiagnosticQuestion {
+  id: number;
+  title: string;
+  sub: string;
+  areaDominante: Area;
+  areaSecundaria: Area;
+  opts: DiagnosticOption[];
 }
 
 export interface DiagnosticProfile {
@@ -21,93 +26,122 @@ export interface DiagnosticProfile {
   ctaText: string;
 }
 
+export const NOMBRES_AREA: Record<Area, string> = {
+  personal: "Desarrollo Personal",
+  organizacional: "Desarrollo Organizacional",
+  comercial: "Desarrollo Comercial",
+  empresarial: "Desarrollo Empresarial",
+};
+
+export function zonaColor(p: number): { zona: string; color: string } {
+  if (p < 40) return { zona: "Crítico", color: "#E1061E" };
+  if (p < 65) return { zona: "En desarrollo", color: "#F7CC13" };
+  return { zona: "Sólido", color: "#1A3D84" };
+}
+
 export const BANCO_PREGUNTAS: DiagnosticQuestion[] = [
   {
     id: 1,
-    title: "Si mañana no estás, ¿qué pasa con tu negocio?",
-    sub: "Pensá en la última vez que te fuiste de vacaciones o estuviste enfermo.",
+    title: "Si no estás, ¿qué se detiene en tu negocio?",
+    sub: "Pensá en la última vez que te fuiste de vacaciones o te enfermaste.",
+    areaDominante: "organizacional",
+    areaSecundaria: "personal",
     opts: [
-      { label: "A", text: "Todo sigue funcionando. Mi equipo sabe qué hacer sin mí.", score: 5 },
-      { label: "B", text: "Funciona, pero hay decisiones que solo yo puedo tomar.", score: 3 },
-      { label: "C", text: "Se genera un caos controlable, pero me llaman para todo.", score: 2 },
-      { label: "D", text: "El negocio se paraliza. Sin mí, no hay negocio.", score: 1 },
+      { label: "A", text: "Funciona igual que si estoy. Mi equipo sabe qué hacer sin mí.", score: 5 },
+      { label: "B", text: "Hay algunos roces, pero sigue. Decisiones que solo yo tomo.", score: 3 },
+      { label: "C", text: "Se complica bastante. Me llaman por casi todo.", score: 2 },
+      { label: "D", text: "Todo se para. Sin mí no hay negocio.", score: 1 },
     ],
   },
   {
     id: 2,
-    title: "¿Cómo llegan los clientes nuevos a tu negocio?",
-    sub: "Pensá en los últimos 5 clientes que cerraste.",
+    title: "De tu facturación de este mes, ¿cuánto depende de 1 o 2 clientes grandes?",
+    sub: "Si esos dos te dejaran de comprar mañana, ¿qué pasa con la empresa?",
+    areaDominante: "comercial",
+    areaSecundaria: "empresarial",
     opts: [
-      { label: "A", text: "Tengo un sistema claro: publicidad, redes, referidos trabajados. Llegan de forma predecible.", score: 5 },
-      { label: "B", text: "Principalmente por recomendaciones. Funciona, pero no es un sistema mío.", score: 3 },
-      { label: "C", text: "De manera irregular. Algunos meses bien, otros preocupantes.", score: 2 },
-      { label: "D", text: "No tengo claro de dónde vienen. Espero que aparezcan y rezo.", score: 1 },
+      { label: "A", text: "Poco, la cartera está bien repartida y tenemos captación constante.", score: 5 },
+      { label: "B", text: "Algo, pero tengo otros clientes para sostenerme.", score: 3 },
+      { label: "C", text: "Una parte grande, me preocupa seriamente.", score: 2 },
+      { label: "D", text: "Casi todo. Si se van, estamos en problemas críticos.", score: 1 },
     ],
   },
   {
     id: 3,
-    title: "Cuando un prospecto dice \"está caro\", ¿qué pasa?",
-    sub: "Tu reacción más honesta, no la más prolija.",
+    title: "Cuando un cliente importante pide condiciones que no te convienen o dice 'está caro', ¿qué hacés?",
+    sub: "La negociación real, no la que contás después.",
+    areaDominante: "comercial",
+    areaSecundaria: "personal",
     opts: [
-      { label: "A", text: "Defiendo el precio con seguridad. Explico el valor y rara vez descuento.", score: 5 },
-      { label: "B", text: "Explico el valor, pero si insisten, termino bajando algo para cerrar.", score: 3 },
-      { label: "C", text: "Me cuesta responder. Suelo hacer algún descuento o me quedo sin argumentos.", score: 2 },
-      { label: "D", text: "Bajo el precio directamente o pierdo la venta. No sé cómo manejarlo.", score: 1 },
+      { label: "A", text: "Defiendo el precio y las condiciones con criterio claro. Rara vez cedo.", score: 5 },
+      { label: "B", text: "Negocio, a veces gano y a veces concedo para cerrar.", score: 3 },
+      { label: "C", text: "Cedo casi siempre para no perderlo, aunque después me arrepienta.", score: 2 },
+      { label: "D", text: "Cedo de inmediato o pierdo la cuenta. No tengo margen de maniobra.", score: 1 },
     ],
   },
   {
     id: 4,
-    title: "¿Tu equipo tira para el mismo lado que vos?",
-    sub: "Pensá en la semana laboral promedio.",
+    title: "¿Tu equipo tira para el mismo lado?",
+    sub: "No el equipo ideal que querés tener. El que tenés hoy.",
+    areaDominante: "organizacional",
+    areaSecundaria: "personal",
     opts: [
-      { label: "A", text: "Sí. Saben para dónde vamos, tienen iniciativa y confío en ellos.", score: 5 },
-      { label: "B", text: "En general sí, aunque siempre hay alguno que hay que estar empujando.", score: 3 },
-      { label: "C", text: "Tengo gente buena, pero falta organización. Cada uno tira para su lado.", score: 2 },
-      { label: "D", text: "Estoy solo o rodeado de personas que no están a la altura.", score: 1 },
+      { label: "A", text: "Sí, hay alineación real, objetivos claros y confío en ellos.", score: 5 },
+      { label: "B", text: "Más o menos, la mayoría responde pero siempre hay que estar empujando.", score: 3 },
+      { label: "C", text: "Hay roces silenciosos y falta de organización en el día a día.", score: 2 },
+      { label: "D", text: "Cada uno interpreta las cosas a su manera. Reina el desorden.", score: 1 },
     ],
   },
   {
     id: 5,
     title: "¿Cuántas veces resolvés el mismo problema en un mes?",
-    sub: "Los problemas que deberían estar resueltos para siempre y siguen volviendo.",
+    sub: "Pensá en las últimas dos semanas.",
+    areaDominante: "empresarial",
+    areaSecundaria: "organizacional",
     opts: [
-      { label: "A", text: "Casi nunca. Los problemas se procesan una vez y quedan resueltos para siempre.", score: 5 },
-      { label: "B", text: "Algunos se repiten pero los manejo rápido porque ya sé cómo.", score: 3 },
-      { label: "C", text: "Varios se repiten. Quiero sistematizar pero no tengo tiempo para hacerlo.", score: 2 },
-      { label: "D", text: "Vivo apagando incendios. Lo mismo de siempre, todos los meses, sin parar.", score: 1 },
+      { label: "A", text: "Raramente se repiten. Los problemas se procesan y quedan estandarizados.", score: 5 },
+      { label: "B", text: "A veces, aprendemos y vamos mejorando poco a poco.", score: 3 },
+      { label: "C", text: "Con frecuencia. Queremos sistematizar pero falta tiempo.", score: 2 },
+      { label: "D", text: "Siempre los mismos. Vivimos apagando incendios cotidianos.", score: 1 },
     ],
   },
   {
     id: 6,
-    title: "¿Tenés asesores o referentes con quienes hablar de tu negocio?",
-    sub: "Alguien que te diga la verdad, no solo lo que querés escuchar.",
+    title: "¿Quién maneja la relación comercial con tus clientes principales y decisiones estratégicas?",
+    sub: "No quién debería. Quién realmente atiende esa llamada.",
+    areaDominante: "comercial",
+    areaSecundaria: "empresarial",
     opts: [
-      { label: "A", text: "Sí. Trabajo con asesores que me aportan perspectiva real y me empujan a mejorar.", score: 5 },
-      { label: "B", text: "Tengo algunos contactos del rubro que consulto de vez en cuando.", score: 3 },
-      { label: "C", text: "Tuve malas experiencias con asesores. Mucha teoría, pocos resultados.", score: 2 },
-      { label: "D", text: "No tengo a nadie. Las decisiones importantes las tomo solo, sin perspectiva externa.", score: 1 },
+      { label: "A", text: "Mi equipo capacitado y con criterio; yo ya no intervengo operativamente.", score: 5 },
+      { label: "B", text: "Alguien del equipo, pero recurre a mí cuando se complica.", score: 3 },
+      { label: "C", text: "Yo en gran medida, aunque sé que ya no debería ser así.", score: 2 },
+      { label: "D", text: "Yo, siempre yo. Si no estoy encima de cada cliente, no se vende.", score: 1 },
     ],
   },
   {
     id: 7,
-    title: "¿Podés describir cómo querés que sea tu negocio en 3 años?",
-    sub: "No lo que querés ganar. Cómo querés que funcione.",
+    title: "¿Ves con claridad cómo querés que funcione tu negocio en 3 años?",
+    sub: "No la respuesta correcta ni lo que querés facturar. El plan real.",
+    areaDominante: "empresarial",
+    areaSecundaria: "personal",
     opts: [
-      { label: "A", text: "Sí, tengo una visión clara: sé qué empresa quiero ser, qué mercado atacar y cómo escalar.", score: 5 },
-      { label: "B", text: "Tengo ideas generales pero no está definido con claridad ni escrito en ningún lado.", score: 3 },
-      { label: "C", text: "Me cuesta proyectarme. El día a día no me deja pensar en el futuro.", score: 2 },
-      { label: "D", text: "Honestamente, no sé. Vivo el presente y que sea lo que Dios quiera.", score: 1 },
+      { label: "A", text: "Tengo un plan concreto, bajado a procesos y funcionando.", score: 5 },
+      { label: "B", text: "La tengo clara en la cabeza, pero falta bajarla y ejecutarla con el equipo.", score: 3 },
+      { label: "C", text: "Tengo ideas vagas; el día a día no me deja proyectarme.", score: 2 },
+      { label: "D", text: "Voy viendo sobre la marcha. La coyuntura me come.", score: 1 },
     ],
   },
   {
     id: 8,
-    title: "Si tuvieras que describir tu momento actual como dueño, ¿cuál es el más honesto?",
-    sub: "La respuesta que no le darías a tu contador ni a tu familia.",
+    title: "Si subieras tus precios un 20% mañana o defendieras tu valor real, ¿qué pasaría?",
+    sub: "La respuesta honesta, no la que te gustaría dar.",
+    areaDominante: "comercial",
+    areaSecundaria: "empresarial",
     opts: [
-      { label: "A", text: "Estoy creciendo y disfruto el proceso. El negocio me da energía.", score: 5 },
-      { label: "B", text: "Funciona, pero algo me dice que podría ir mucho mejor.", score: 3 },
-      { label: "C", text: "Estoy cansado. Trabajé mucho y los resultados no reflejan el esfuerzo.", score: 2 },
-      { label: "D", text: "La verdad es que estoy atascado y no sé por dónde empezar a destrabar esto.", score: 1 },
+      { label: "A", text: "Ningún cliente clave se iría; reconocen el valor diferencial de nuestro trabajo.", score: 5 },
+      { label: "B", text: "Algunos clientes se irían, pero el margen compensaría.", score: 3 },
+      { label: "C", text: "Perdería varios clientes y me asusta mucho probarlo.", score: 2 },
+      { label: "D", text: "Perdería casi todos mis clientes. Compito exclusivamente por precio.", score: 1 },
     ],
   },
 ];
@@ -116,7 +150,7 @@ export const PERFILES: Record<string, DiagnosticProfile> = {
   SATURADO: {
     color: "hsl(var(--brand-rojo))",
     tagline: "Trabajás el doble. Ganás la mitad de lo que deberías.",
-    desc: "Empezaste esto para tener libertad. Y terminaste siendo el empleado más exigido de tu propia empresa. No porque seas desorganizado — sino porque el negocio creció sin estructura y ahora todo pasa por vos. Cada decisión, cada problema, cada incendio. Sabés que algo tiene que cambiar, pero no encontrás el momento para sentarte a cambiarlo. Eso también es parte del problema.",
+    desc: "Empezaste esto para tener libertad. Y terminaste siendo el empleado más exigido de tu propia empresa. No porque seas desorganizado — sino porque el negocio creció sin estructura y ahora todo pasa por vos. Cada decisión, cada problema, cada incendio. Sabés que algo tiene que cambiar, pero no encontrás el momento para sentarte a cambiarlo. Eso también es parte de la falta de sistema.",
     mirror: [
       '"Si yo no empujo, nada avanza."',
       '"Estoy en mil cosas a la vez y ninguna la termino bien."',
@@ -135,7 +169,7 @@ export const PERFILES: Record<string, DiagnosticProfile> = {
   INVISIBLE: {
     color: "hsl(var(--brand-azul))",
     tagline: "Sos muy bueno en lo que hacés. El problema es que nadie lo sabe.",
-    desc: "Tus clientes actuales te valoran — los que ya llegaron, saben lo que valés. Pero los que todavía no te conocen no tienen forma de distinguirte. No tenés un argumento construido para defender tu precio. No porque no lo merezcas, sino porque nunca nadie te ayudó a armarlo. El resultado: cobrás menos de lo que deberías y competís en un terreno que no te representa.",
+    desc: "Tus clientes actuales te valoran — los que ya llegaron, saben lo que valés. Pero los que todavía no te conocen no tienen forma de distinguirte. No tenés un argumento construido para defender tu precio. No porque no lo merezcas, sino porque nunca nadie te ayudó a armar un proceso comercial claro. El resultado: cobrás menos de lo que deberías y competís en un terreno que no te representa.",
     mirror: [
       '"Sé que soy bueno, pero no sé cómo explicarlo sin sonar soberbio."',
       '"No sé cómo diferenciarme — siento que soy uno más del montón."',
@@ -149,7 +183,7 @@ export const PERFILES: Record<string, DiagnosticProfile> = {
       "Tu nivel real no se refleja en lo que cobrás ni en cómo te presentás",
     ],
     ctaTitle: "No te falta talento. Te falta visibilidad estratégica.",
-    ctaText: "El problema no es lo que sabés hacer. Es cómo lo estás comunicando al mercado. Eso tiene solución en una sesión.",
+    ctaText: "El problema no es lo que sabés hacer. Es cómo lo estás comunicando al mercado. Eso tiene solución con método.",
   },
   LIDER_SOLO: {
     color: "hsl(var(--brand-azul))",
@@ -253,7 +287,7 @@ export const PERFILES: Record<string, DiagnosticProfile> = {
     mirror: [
       '"Trabajo un montón pero la plata no aparece."',
       '"Un mes bien, otro mal — no hay regularidad."',
-      '"Probé de todo: redes, publicidad, cursosâ€¦ nada funciona de verdad."',
+      '"Probé de todo: redes, publicidad, cursos... nada funciona de verdad."',
       '"A veces pienso que el problema soy yo."',
     ],
     symptoms: [
@@ -267,6 +301,27 @@ export const PERFILES: Record<string, DiagnosticProfile> = {
   },
 };
 
+export function calcularScores(respuestas: Record<number, number> | number[]): Scores {
+  const scores: Scores = { personal: 0, organizacional: 0, comercial: 0, empresarial: 0 };
+  const maxPorArea: Scores = { personal: 0, organizacional: 0, comercial: 0, empresarial: 0 };
+
+  BANCO_PREGUNTAS.forEach((p, i) => {
+    const val = Array.isArray(respuestas) ? (respuestas[i] ?? 3) : (respuestas[p.id] ?? 3);
+    const dom = p.areaDominante;
+    const sec = p.areaSecundaria;
+    scores[dom] += val * 0.7;
+    scores[sec] += val * 0.3;
+    maxPorArea[dom] += 5 * 0.7;
+    maxPorArea[sec] += 5 * 0.3;
+  });
+
+  const normalizado: Scores = { personal: 0, organizacional: 0, comercial: 0, empresarial: 0 };
+  for (const area of Object.keys(scores) as Area[]) {
+    normalizado[area] = Math.round((scores[area] / (maxPorArea[area] || 1)) * 100);
+  }
+  return normalizado;
+}
+
 export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -276,21 +331,8 @@ export function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-/**
- * Vectorized profile detection.
- * Each profile is defined by score signatures across 3 axes:
- *   - operativo: v1 (dependency) + v5 (processes)
- *   - comercial: v2 (acquisition) + v3 (pricing)
- *   - estratégico: v6 (advisors) + v7 (vision)
- *   - equipo: v4 (team alignment)
- *   - emocional: v8 (owner state)
- *
- * Instead of nested if/else, we compute a "fit score" for each profile
- * and pick the best match. More maintainable and testable.
- */
 const PROFILE_RULES: Array<{
   key: string;
-  /** Weighted score function: higher = better fit */
   fit: (answers: Record<number, number>) => number;
 }> = [
   {
@@ -328,7 +370,6 @@ const PROFILE_RULES: Array<{
 ];
 
 export function detectarPerfil(answers: Record<number, number>): string {
-  // Default neutral scores for unanswered questions
   const a: Record<number, number> = {};
   for (let i = 1; i <= 8; i++) {
     a[i] = answers[i] ?? 3;
@@ -349,4 +390,3 @@ export function detectarPerfil(answers: Record<number, number>): string {
 }
 
 export const WA_NUMBER = "543764358152";
-
