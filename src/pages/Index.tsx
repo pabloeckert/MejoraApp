@@ -30,6 +30,25 @@ const Index = () => {
   const { isComplete: profileComplete, isLoading: profileLoading, profile } = useProfileComplete(user?.id);
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(() => {
+    // Deep link desde shortcuts PWA (?tab=...)
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab");
+    const validTabs = [
+      "home",
+      "contenido",
+      "diagnostico",
+      "mirror",
+      "emergencia",
+      "eventos",
+      "circulo",
+      "red",
+      "muro",
+      "comunidad",
+      "mentor",
+      "novedades",
+      "perfil",
+    ];
+    if (tabParam && validTabs.includes(tabParam)) return tabParam;
     // Si viene del onboarding, abrir directo en la tab indicada
     const fromState = (location.state as { initialTab?: string } | null)?.initialTab;
     if (fromState) return fromState;

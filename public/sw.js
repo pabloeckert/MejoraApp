@@ -1,5 +1,12 @@
-const CACHE_NAME = "mejoraapp-v5";
-const STATIC_ASSETS = ["/", "/index.html", "/offline.html"];
+const CACHE_NAME = "mejoraapp-v6";
+const STATIC_ASSETS = [
+  "/",
+  "/index.html",
+  "/offline.html",
+  "/manifest.json",
+  "/favicon.svg",
+  "/favicon.png",
+];
 
 // Assets to pre-cache on install
 const PRECACHE_URLS = STATIC_ASSETS;
@@ -44,8 +51,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets (hashed filenames): cache-first
-  if (url.pathname.startsWith("/assets/")) {
+  // Static assets (hashed filenames, local fonts, manifest): cache-first
+  if (
+    url.pathname.startsWith("/assets/") ||
+    url.pathname.startsWith("/fonts/") ||
+    url.pathname === "/manifest.json"
+  ) {
     event.respondWith(
       caches.match(req).then((cached) => {
         if (cached) return cached;

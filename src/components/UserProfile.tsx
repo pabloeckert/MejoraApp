@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { sincronizarUsuarioBestEffort } from "@/services/contactosService";
+import { DataManagement } from "@/components/DataManagement";
 
 interface UserProfileProps {
   open: boolean;

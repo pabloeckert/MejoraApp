@@ -43,10 +43,13 @@ const ProfileCompleteModal = ({ userId, onComplete }: ProfileCompleteModalProps)
       trackProfileComplete(!!phone.trim());
 
       // Sincronización central con contactos-api (Día 6)
-      supabase.from("profiles")
-        .select("nombre, apellido, email, display_name")
-        .eq("user_id", userId)
-        .maybeSingle()
+      Promise.resolve(
+        supabase
+          .from("profiles")
+          .select("nombre, apellido, email, display_name")
+          .eq("user_id", userId)
+          .maybeSingle()
+      )
         .then(({ data: prof }) => {
           const nombreCompleto = prof?.display_name || [prof?.nombre, prof?.apellido].filter(Boolean).join(" ");
           sincronizarUsuarioBestEffort({
@@ -63,7 +66,7 @@ const ProfileCompleteModal = ({ userId, onComplete }: ProfileCompleteModalProps)
             },
           });
         })
-        .catch((e) => console.warn("[contactosService] Error obteniendo perfil para sync:", e));
+        .catch((e: unknown) => console.warn("[contactosService] Error obteniendo perfil para sync:", e));
 
       onComplete();
     } catch (err) {

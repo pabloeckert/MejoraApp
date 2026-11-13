@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { WA_NUMBER } from "@/data/diagnosticData";
+import { allianceOpportunitySchema, formatZodError } from "@/lib/validation";
+import { isAllowed } from "@/lib/rateLimit";
 
 interface AllianceMember {
   id: string;
@@ -197,14 +199,38 @@ function VipView() {
   };
 
   const handlePublishAlliance = async () => {
-    if (!user || (!ofreceInput.trim() && !buscaInput.trim())) return;
+    if (!user) return;
+
+    const parsed = allianceOpportunitySchema.safeParse({
+      axis: axisTag,
+      ofrece: ofreceInput,
+      busca: buscaInput,
+    });
+    if (!parsed.success) {
+      toast({
+        title: "Revisá tu propuesta B2B",
+        description: formatZodError(parsed.error),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isAllowed("alliance_publish")) {
+      toast({
+        title: "Demasiadas actualizaciones seguidas",
+        description: "Esperá unos minutos antes de volver a editar tu publicación en la Mesa.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSavingAlliance(true);
     try {
-      const formattedOfrece = ofreceInput.trim()
-        ? `[${axisTag}] ${ofreceInput.trim()}`.slice(0, 300)
+      const formattedOfrece = parsed.data.ofrece
+        ? `[${parsed.data.axis}] ${parsed.data.ofrece}`.slice(0, 300)
         : null;
-      const formattedBusca = buscaInput.trim()
-        ? `[${axisTag}] ${buscaInput.trim()}`.slice(0, 300)
+      const formattedBusca = parsed.data.busca
+        ? `[${parsed.data.axis}] ${parsed.data.busca}`.slice(0, 300)
         : null;
 
       const { error } = await supabase

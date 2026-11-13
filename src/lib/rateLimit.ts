@@ -78,6 +78,8 @@ export const RATE_LIMITS = {
   profile_edit: { max: 10, windowMs: 300_000 },    // 10 edits per 5 minutes
   diagnostic: { max: 5, windowMs: 3_600_000 },     // 5 diagnostics per hour
   mentor_message: { max: 30, windowMs: 60_000 },   // 30 messages per minute
+  emergency_alert: { max: 3, windowMs: 3_600_000 }, // 3 emergency dispatches per hour
+  alliance_publish: { max: 5, windowMs: 300_000 }, // 5 alliance updates per 5 minutes
 } as const;
 
 export type RateLimitAction = keyof typeof RATE_LIMITS;

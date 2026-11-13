@@ -35,11 +35,11 @@
   <meta name="twitter:description" content="Diagnosticá tu negocio con el Mirror Estratégico. Comunidad de líderes argentinos." />
   <meta name="twitter:image" content="https://app.mejoraok.com/og-image.png" />
 
-  <!-- Security Headers (X-Frame-Options and frame-ancestors must be served via HTTP headers, not meta) -->
+  <!-- Security Headers (X-Frame-Options and frame-ancestors enforced via HTTP headers in vercel.json) -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://browser.sentry.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://us.i.posthog.com https://*.ingest.sentry.io wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://us.i.posthog.com https://browser.sentry.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://us.i.posthog.com https://*.ingest.sentry.io wss://*.supabase.co; base-uri 'self'; form-action 'self';" />
 
   <!-- Preconnect to Supabase (configured via env) -->
 

@@ -13,6 +13,8 @@ import {
   wallPostSchema,
   wallCommentSchema,
   contentPostSchema,
+  emergencyAlertSchema,
+  allianceOpportunitySchema,
   formatZodError,
   validateOrThrow,
 } from "@/lib/validation";
@@ -286,5 +288,72 @@ describe("validateOrThrow", () => {
     expect(() => {
       validateOrThrow(loginSchema, { email: "", password: "" });
     }).toThrow();
+  });
+});
+
+// ── Sprint 3: Emergency Alert Schema ─────────────────────────────
+describe("emergencyAlertSchema", () => {
+  it("accepts valid crisis payload", () => {
+    const result = emergencyAlertSchema.safeParse({
+      crisisType: "Caja / Financiera",
+      message: "Se frenó la cobranza clave de esta semana.",
+      contactPhone: "+54 9 11 5555-5555",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("strips HTML and XSS tags from message and phone", () => {
+    const result = emergencyAlertSchema.safeParse({
+      crisisType: "Conflicto Societario",
+      message: "<script>alert('xss')</script>Urgencia real",
+      contactPhone: "<b>+5491155555555</b>",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.message).toBe("Urgencia real");
+      expect(result.data.contactPhone).toBe("+5491155555555");
+    }
+  });
+
+  it("rejects message exceeding 600 chars", () => {
+    const result = emergencyAlertSchema.safeParse({
+      crisisType: "Operación Detenida",
+      message: "a".repeat(601),
+      contactPhone: "",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── Sprint 3: Alliance Opportunity Schema ────────────────────────
+describe("allianceOpportunitySchema", () => {
+  it("accepts valid B2B alliance payload", () => {
+    const result = allianceOpportunitySchema.safeParse({
+      axis: "Distribución",
+      ofrece: "Logística nacional",
+      busca: "Proveedores industriales",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("strips HTML tags cleanly", () => {
+    const result = allianceOpportunitySchema.safeParse({
+      axis: "Capacidad Instalada",
+      ofrece: "<img src=x onerror=alert(1)>Planta disponible",
+      busca: "",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.ofrece).toBe("Planta disponible");
+    }
+  });
+
+  it("rejects when both ofrece and busca are empty after sanitization", () => {
+    const result = allianceOpportunitySchema.safeParse({
+      axis: "Inversión Conjunta",
+      ofrece: "<script>alert(1)</script>",
+      busca: "   ",
+    });
+    expect(result.success).toBe(false);
   });
 });

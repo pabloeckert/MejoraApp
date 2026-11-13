@@ -95,3 +95,26 @@ Confirmado (re-verificado): las 14 Edge Functions listadas en `CLAUDE.md` coinci
 - `ARCHITECTURE.md` — árbol de `admin/` corregido, referencia a `AdminCRM` eliminada con nota.
 
 Nada fue commiteado ni pusheado. Todo queda en el working tree para revisión del usuario.
+
+---
+
+## Cierre Sprint 3 y Checklist de Lanzamiento (Definition of Done)
+
+Actualización de cierre técnico correspondiente al fin del Sprint 3:
+
+1. **Mojibake saneado y blindado por test automático**: confirmado `0` ocurrencias de mojibake en `src/data/businessMirrorTests.ts` y `src/data/diagnosticData.ts`, con verificación de regresión integrada en `src/test/security.test.ts`.
+2. **CSP unificada en `<meta>` (`index.html`) y HTTP headers (`vercel.json`)**: eliminado `'unsafe-eval'` y removida la directiva inválida `frame-ancestors` del `<meta>` en `index.html` (manteniendo `frame-ancestors 'none'` en `vercel.json`).
+3. **Endurecimiento PWA & Offline (Low-Data UX)**:
+   - Service Worker `public/sw.js` actualizado a `"mejoraapp-v6"` con pre-cache de `manifest.json`, `favicon.svg`, `favicon.png`, `offline.html` y cache-first para `/assets/`, `/fonts/` y `/manifest.json`.
+   - `public/offline.html` rediseñado bajo estándar **80/10/5/5** y **Criterio Medular**, informando resguardo local del *Mirror Estratégico* y puente de emergencia por WhatsApp (`< 60 min SLA`).
+   - Deep-links de PWA en `public/manifest.json` (`/?tab=diagnostico`, `/?tab=mentor`, `/?tab=emergencia`) conectados en `src/pages/Index.tsx`.
+4. **Hardening Multi-Tenant, Validación & Rate Limiting (Sprint 3)**:
+   - Migración `supabase/migrations/20260615000000_sprint3_rls_hardening.sql` con trigger `prevent_client_tier_escalation()` en `public.profiles`, check de longitud en `public.emergencies` y políticas RLS explícitas para `profiles` y `emergencies`.
+   - Schemas Zod + DOMPurify (`emergencyAlertSchema`, `allianceOpportunitySchema`) en `src/lib/validation.ts` y límites (`emergency_alert`, `alliance_publish`) en `src/lib/rateLimit.ts`, conectados a `Emergencia.tsx` y `CirculoDorado.tsx`.
+
+### Checklist de Despliegue a Producción (`app.mejoraok.com`)
+- [x] `npm test` verde (tests unitarios + regresión de seguridad/sanitización/encoding).
+- [x] `npm run build` sin errores TypeScript ni advertencias críticas de empaquetado.
+- [ ] Ejecutar migración `supabase/migrations/20260615000000_sprint3_rls_hardening.sql` en el proyecto productivo de Supabase.
+- [ ] Verificar en Vercel (`app.mejoraok.com`) variables de entorno (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN`) y secrets de Edge Functions (`TIENDUP_*`, `RESEND_API_KEY`, LLM keys).
+- [ ] Confirmar rotación histórica de credenciales FTP heredadas y revisar estado de CI/Lighthouse en GitHub Actions tras el push final.

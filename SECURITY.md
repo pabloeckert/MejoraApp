@@ -36,14 +36,16 @@ Respondemos en un máximo de 48 horas.
 
 ### Content Security Policy (CSP)
 
+Unificada entre `vercel.json` (headers HTTP reales) e `index.html` (`<meta>`, sin `'unsafe-eval'` ni directivas inválidas en meta):
+
 ```
 default-src 'self'
-script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://browser.sentry.io
+script-src 'self' 'unsafe-inline' https://us.i.posthog.com https://browser.sentry.io
 style-src 'self' 'unsafe-inline'
 img-src 'self' data: blob: https:
 font-src 'self' data:
 connect-src 'self' https://*.supabase.co https://us.i.posthog.com https://*.ingest.sentry.io wss://*.supabase.co
-frame-ancestors 'none'
+frame-ancestors 'none' (HTTP header en vercel.json)
 base-uri 'self'
 form-action 'self'
 ```
@@ -73,6 +75,8 @@ form-action 'self'
 | Posts del muro | Zod + HTML strip | `src/lib/validation.ts` |
 | Comentarios | Zod + HTML strip | `src/lib/validation.ts` |
 | CRM data | Zod schemas | `src/lib/validation.ts` |
+| Emergencia (< 60m SLA) | Zod + DOMPurify | `src/lib/validation.ts` |
+| Mesa de Alianzas B2B | Zod + DOMPurify | `src/lib/validation.ts` |
 | URLs | Sanitización | `src/lib/security.ts` |
 
 ### Rate Limiting (Client-side)
@@ -86,6 +90,8 @@ form-action 'self'
 | Edición perfil | 10 | 5 minutos |
 | Diagnósticos | 5 | 1 hora |
 | Mensajes Mentor | 30 | 1 minuto |
+| Alertas de Emergencia | 3 | 1 hora |
+| Publicación Alianza B2B | 5 | 5 minutos |
 
 ### Data Protection
 
@@ -131,13 +137,14 @@ form-action 'self'
 
 ## Supabase Row Level Security (RLS)
 
-Todas las tablas tienen RLS habilitado. Las políticas están definidas en Supabase Dashboard.
+Todas las tablas tienen RLS habilitado. Las políticas están definidas en `supabase/migrations/` y verificadas en Supabase Dashboard.
 
 **Reglas generales:**
-- Usuarios solo leen/escriben sus propios datos
-- Admins tienen acceso ampliado via Edge Functions
+- Usuarios solo leen/escriben sus propios datos (`profiles` directorio requiere `auth.role() = 'authenticated'` y `visible_en_red = true`)
+- Protección anti-escalación en servidor: trigger `prevent_client_tier_escalation()` en `public.profiles` bloquea modificaciones desde el cliente sobre `access_level`, `membership_level`, `membership_expires_at`, `tiendup_customer_id` y `tiendup_subscription_id` (migración `20260615000000_sprint3_rls_hardening.sql`)
+- Admins tienen acceso ampliado via Edge Functions y `public.is_admin(auth.uid())`
 - Contenido público (posts aprobados) legible por todos
-- Datos sensibles (push_subscriptions) solo por el usuario dueño
+- Datos sensibles (`push_subscriptions`, `emergencies`) estrictamente aislados al `user_id` dueño o admin
 
 ---
 

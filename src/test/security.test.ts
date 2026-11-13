@@ -186,3 +186,19 @@ describe("Master password removal", () => {
     expect(verificationMethod).not.toBe("master-password-sha256");
   });
 });
+
+describe("Sprint 3 Security & Content Hygiene", () => {
+  it("should have zero UTF-8 mojibake in Business Mirror and Diagnostic data", async () => {
+    const { ALL_TESTS } = await import("@/data/businessMirrorTests");
+    const { BANCO_PREGUNTAS, PERFILES } = await import("@/data/diagnosticData");
+    const serialized = JSON.stringify({ ALL_TESTS, BANCO_PREGUNTAS, PERFILES });
+    const mojibakePattern = /\u00c3[\u00a1\u00a9\u00ad\u00b3\u00ba\u00b1]|\u00c2[\u00bf\u00a1]|\u00e2\u20ac\u201d/;
+    expect(mojibakePattern.test(serialized)).toBe(false);
+  });
+
+  it("should define rate limits for emergency alerts and B2B alliances", async () => {
+    const { RATE_LIMITS } = await import("@/lib/rateLimit");
+    expect(RATE_LIMITS.emergency_alert).toEqual({ max: 3, windowMs: 3_600_000 });
+    expect(RATE_LIMITS.alliance_publish).toEqual({ max: 5, windowMs: 300_000 });
+  });
+});

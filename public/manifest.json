@@ -41,14 +41,21 @@
       "name": "Mirror Estratégico",
       "short_name": "Mirror",
       "description": "Hacé el diagnóstico de tu negocio",
-      "url": "/mirror",
+      "url": "/?tab=diagnostico",
       "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
     },
     {
       "name": "Mentor IA",
       "short_name": "Mentor",
       "description": "Consultá con tu mentor estratégico con IA",
-      "url": "/mentor",
+      "url": "/?tab=mentor",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Guardia de Crisis (< 60m)",
+      "short_name": "Emergencia",
+      "description": "Activá el protocolo de emergencia empresarial",
+      "url": "/?tab=emergencia",
       "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
     }
   ]

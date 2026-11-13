@@ -26,6 +26,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { WA_NUMBER } from "@/data/diagnosticData";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { emergencyAlertSchema, formatZodError } from "@/lib/validation";
+import { isAllowed } from "@/lib/rateLimit";
 
 const WEEKLY_LIMIT_N1 = 3;
 
@@ -50,6 +53,7 @@ interface EmergencyRecord {
 export default function Emergencia() {
   const { user } = useAuth();
   const { level } = useAccessLevel(user?.id);
+  const { toast } = useToast();
   const [crisisType, setCrisisType] = useState<CrisisType>("Caja / Financiera");
   const [message, setMessage] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -118,11 +122,35 @@ export default function Emergencia() {
   const handleEmergency = useCallback(async () => {
     if (!user || sending) return;
 
+    const parsed = emergencyAlertSchema.safeParse({
+      crisisType,
+      message,
+      contactPhone,
+    });
+    if (!parsed.success) {
+      toast({
+        title: "Revisá los datos de guardia",
+        description: formatZodError(parsed.error),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isAllowed("emergency_alert")) {
+      toast({
+        title: "Guardia ya activada recientemente",
+        description: "Ya registraste activaciones en la última hora. Si necesitás seguimiento urgente, escribí por WhatsApp directo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSending(true);
     try {
-      const impactText = message.trim() || "Solicito intervención urgente de guardia.";
-      const phoneText = contactPhone.trim() ? ` | Tel: ${contactPhone.trim()}` : "";
-      const structuredDbMessage = `[${crisisType}] ${impactText}${phoneText}`.slice(0, 500);
+      const impactText = parsed.data.message || "Solicito intervención urgente de guardia.";
+      const cleanPhone = parsed.data.contactPhone?.trim() || "";
+      const phoneText = cleanPhone ? ` | Tel: ${cleanPhone}` : "";
+      const structuredDbMessage = `[${parsed.data.crisisType}] ${impactText}${phoneText}`.slice(0, 500);
 
       const { error } = await supabase.from("emergencies").insert({
         user_id: user.id,
@@ -134,21 +162,31 @@ export default function Emergencia() {
 
       const waLines = [
         `🚨 PROTOCOLO DE EMERGENCIA EMPRESARIAL (${isN2 ? "PRIORIDAD N2 < 60 MIN SLA" : "GUARDIA N1"})`,
-        `• Tipo de Crisis: ${crisisType}`,
+        `• Tipo de Crisis: ${parsed.data.crisisType}`,
         `• Impacto actual: ${impactText}`,
-        contactPhone.trim() ? `• Teléfono directo: ${contactPhone.trim()}` : null,
+        cleanPhone ? `• Teléfono directo: ${cleanPhone}` : null,
       ].filter(Boolean);
 
       const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(waLines.join("\n"))}`;
       window.open(url, "_blank", "noopener,noreferrer");
 
+      toast({
+        title: "Protocolo de Emergencia activado",
+        description: "Tu ticket quedó registrado y se abrió el canal directo de guardia.",
+      });
+
       setMessage("");
     } catch (err) {
       console.error("Error registering emergency:", err);
+      toast({
+        title: "No se pudo registrar el ticket",
+        description: "Intentá nuevamente o contactá por WhatsApp directo.",
+        variant: "destructive",
+      });
     } finally {
       setSending(false);
     }
-  }, [user, sending, crisisType, message, contactPhone, isN2]);
+  }, [user, sending, crisisType, message, contactPhone, isN2, toast]);
 
   return (
     <div className="space-y-5 animate-fade-in pb-8">

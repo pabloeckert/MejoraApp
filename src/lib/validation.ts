@@ -143,6 +143,52 @@ export const contentPostSchema = z.object({
     .min(1, "La categoría es requerida"),
 });
 
+// ── Sprint 3: Emergencia & Mesa de Alianzas B2B ────────────────
+export const emergencyAlertSchema = z.object({
+  crisisType: z.enum([
+    "Caja / Financiera",
+    "Conflicto Societario",
+    "Fuga Comercial Crítica",
+    "Crisis de Equipo Clave",
+    "Operación Detenida",
+  ]),
+  message: z
+    .string()
+    .max(600, "Máximo 600 caracteres")
+    .transform((s) => DOMPurify.sanitize(s, { ALLOWED_TAGS: [] }).trim()),
+  contactPhone: z
+    .string()
+    .max(30, "Máximo 30 caracteres")
+    .transform((s) => DOMPurify.sanitize(s, { ALLOWED_TAGS: [] }).trim())
+    .optional()
+    .or(z.literal("")),
+});
+
+export const allianceOpportunitySchema = z
+  .object({
+    axis: z.enum([
+      "Distribución",
+      "Capacidad Instalada",
+      "Inversión Conjunta",
+      "Proveedores B2B",
+    ]),
+    ofrece: z
+      .string()
+      .max(260, "Máximo 260 caracteres")
+      .transform((s) => DOMPurify.sanitize(s, { ALLOWED_TAGS: [] }).trim())
+      .optional()
+      .or(z.literal("")),
+    busca: z
+      .string()
+      .max(260, "Máximo 260 caracteres")
+      .transform((s) => DOMPurify.sanitize(s, { ALLOWED_TAGS: [] }).trim())
+      .optional()
+      .or(z.literal("")),
+  })
+  .refine((d) => Boolean(d.ofrece || d.busca), {
+    message: "Ingresá al menos lo que ofrecés o lo que buscás",
+  });
+
 // ── Utility Types ───────────────────────────────────────────────
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
@@ -152,6 +198,8 @@ export type AdminProfileEditInput = z.infer<typeof adminProfileEditSchema>;
 export type WallPostInput = z.infer<typeof wallPostSchema>;
 export type WallCommentInput = z.infer<typeof wallCommentSchema>;
 export type ContentPostInput = z.infer<typeof contentPostSchema>;
+export type EmergencyAlertInput = z.infer<typeof emergencyAlertSchema>;
+export type AllianceOpportunityInput = z.infer<typeof allianceOpportunitySchema>;
 
 // ── Helper: Format Zod Errors ───────────────────────────────────
 export function formatZodError(error: z.ZodError): string {

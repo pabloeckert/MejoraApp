@@ -2,22 +2,146 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Sin conexión — Mejora Continua</title>
   <style>
-    body { font-family: sans-serif; background: #f9fafb; color: #111; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 1.5rem; }
-    .card { background: white; border-radius: 1rem; padding: 2.5rem 2rem; max-width: 360px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
-    h1 { font-size: 1.5rem; margin: 0 0 .75rem; }
-    p { color: #666; margin: 0 0 1.5rem; }
-    a { display: inline-block; background: #1A3D84; color: white; padding: .75rem 1.75rem; border-radius: .5rem; text-decoration: none; font-weight: 600; }
+    :root {
+      color-scheme: light;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Bw Modelica", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F8FAFC;
+      color: #0F172A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.25rem;
+    }
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 1.25rem;
+      padding: 2rem 1.5rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      text-align: left;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(26, 61, 132, 0.1);
+      color: #1A3D84;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.375rem;
+      line-height: 1.25;
+      margin: 0 0 0.625rem;
+      font-weight: 800;
+      color: #0F172A;
+    }
+    p {
+      color: #475569;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      margin: 0 0 1rem;
+    }
+    .reassurance {
+      background: #F8FAFC;
+      border-left: 4px solid #1A3D84;
+      padding: 0.75rem 0.9rem;
+      border-radius: 0 0.75rem 0.75rem 0;
+      font-size: 0.82rem;
+      color: #334155;
+      margin-bottom: 1.25rem;
+    }
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 48px;
+      background: #1A3D84;
+      color: #FFFFFF;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.92rem;
+      margin-bottom: 1rem;
+    }
+    .emergency-box {
+      border: 2px solid #E1061E;
+      border-radius: 0.9rem;
+      padding: 0.9rem 1rem;
+      background: rgba(225, 6, 30, 0.03);
+    }
+    .emergency-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #E1061E;
+      margin: 0 0 0.3rem;
+    }
+    .emergency-copy {
+      font-size: 0.8rem;
+      color: #475569;
+      margin: 0 0 0.7rem;
+      line-height: 1.45;
+    }
+    .btn-emergency {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 48px;
+      background: #E1061E;
+      color: #FFFFFF;
+      border-radius: 0.7rem;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div style="font-size:2.5rem;margin-bottom:.75rem">📡</div>
-    <h1>Sin conexión</h1>
-    <p>No podemos cargar la app ahora. Revisá tu conexión e intentá de nuevo.</p>
-    <a href="/">Reintentar</a>
-  </div>
+  <main class="card">
+    <span class="badge">Modo Baja Conectividad · Mejora Continua</span>
+    <h1>Se interrumpió la conexión</h1>
+    <p>
+      Tu navegador no logra conectarse a la red en este momento. No es un error tuyo ni se perdió tu trabajo.
+    </p>
+    <div class="reassurance">
+      <strong>Progreso resguardado:</strong> tu avance en el <em>Mirror Estratégico</em> se guarda localmente en tu dispositivo para retomarlo apenas vuelva la señal.
+    </div>
+    <a class="btn-primary" href="/">Reintentar conexión</a>
+    <section class="emergency-box" aria-label="Guardia de Emergencia">
+      <p class="emergency-title">Protocolo de Emergencia · SLA &lt; 60 min</p>
+      <p class="emergency-copy">
+        ¿Tenés una crisis operativa o de caja activa y necesitás asistencia directa mientras vuelve tu conectividad?
+      </p>
+      <a
+        class="btn-emergency"
+        href="https://wa.me/543764358152?text=Protocolo%20de%20Emergencia%20MejoraApp%20(SLA%20%3C%2060%20min)%20%E2%80%94%20Sin%20conectividad%20en%20app"
+        rel="noopener noreferrer"
+      >
+        Contactar Guardia por WhatsApp
+      </a>
+    </section>
+  </main>
 </body>
 </html>
