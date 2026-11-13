@@ -14,6 +14,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['"Bw Modelica"', "Inter", '"Segoe UI"', "system-ui", "-apple-system", "sans-serif"],
+        display: ['"League Spartan"', '"Bw Modelica"', "system-ui", "sans-serif"],
+      },
       fontSize: {
         // Typography scale: caption → body → subtitle → title → heading → display
         "caption": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.01em" }],    // 11px

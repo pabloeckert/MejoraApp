@@ -55,7 +55,7 @@
     --brand-gris: 220 9% 46%;
     --brand-negro: 0 0% 17%;
 
-    --background: 0 0% 98%;
+    --background: 210 40% 98%;
     --foreground: var(--brand-negro);
 
     --card: 0 0% 100%;
@@ -105,7 +105,8 @@
     --sidebar-ring: 213 66% 33%;
   }
 
-  .dark {
+  .dark,
+  [data-theme="dark"] {
     --background: 232 95% 5%;
     --foreground: 0 0% 95%;
 
