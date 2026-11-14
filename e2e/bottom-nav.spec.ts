@@ -54,17 +54,34 @@ test.describe("Splash Screen", () => {
 });
 
 test.describe("PWA", () => {
-  test("manifest is accessible", async ({ request }) => {
+  test("manifest is accessible and includes Sprint 3 deep-link shortcuts", async ({ request }) => {
     const response = await request.get("/manifest.json");
     expect(response.status()).toBe(200);
 
     const manifest = await response.json();
     expect(manifest.name).toContain("Mejora");
     expect(manifest.start_url).toBeTruthy();
+
+    const shortcutUrls = (manifest.shortcuts ?? []).map((s: { url: string }) => s.url);
+    expect(shortcutUrls).toContain("/?tab=diagnostico");
+    expect(shortcutUrls).toContain("/?tab=mentor");
+    expect(shortcutUrls).toContain("/?tab=emergencia");
   });
 
   test("service worker is accessible", async ({ request }) => {
     const response = await request.get("/sw.js");
     expect(response.status()).toBe(200);
+
+    const body = await response.text();
+    expect(body).toContain("mejoraapp-v6");
+  });
+
+  test("offline fallback page is accessible and follows 80/10/5/5 emergency protocol", async ({ request }) => {
+    const response = await request.get("/offline.html");
+    expect(response.status()).toBe(200);
+
+    const html = await response.text();
+    expect(html).toContain("Modo Baja Conectividad");
+    expect(html).toContain("543764358152");
   });
 });

@@ -1,8 +1,15 @@
-# Mejora Continua — Mirror Estratégico
+# Mejora Continua — Mirror Estratégico & Comunidad Empresarial
 
 **Producción:** [app.mejoraok.com](https://app.mejoraok.com)
 
-PWA para líderes empresariales argentinos. El foco central es el **Mirror Estratégico**: un diagnóstico de 8 preguntas que identifica el freno real del negocio y ofrece un plan de acción personalizado. Incluye Muro anónimo, Contenido de valor, Comunidad, Mentor IA y Panel Admin.
+PWA estratégica para líderes y dueños de PyMEs bajo el **Criterio Medular** y el sistema de diseño **80/10/5/5** de Mejora Continua.
+
+### Módulos principales
+- **Mirror Estratégico (`N0`)**: diagnóstico de 8 preguntas que calcula el arquetipo dominante y el semáforo Bento de **4 Dimensiones** (*Estructura*, *Comercial*, *Equipo*, *Visión*).
+- **Muro Anónimo de Líderes (`N1`)**: debate entre directivos con seudónimo corporativo protegido, categorías fijas (`Finanzas`, `Socios`, `Comercial`, `Equipo`, `Crisis`) y moderación IA.
+- **Mentor IA 24/7 (`N1`/`N2`)**: copiloto por streaming SSE con inyección del contexto 4D del último Mirror del usuario.
+- **Círculo Dorado & Mesa de Alianzas B2B (`N2`)**: publicación y articulación de acuerdos estratégicos (distribución, capacidad instalada, inversión conjunta y proveedores B2B) con conexión bilateral mediada.
+- **Botón de Emergencia Empresarial (`< 60 min SLA`)**: protocolo de guardia de 3 campos con trazabilidad en DB y despacho directo multicanal.
 
 ---
 

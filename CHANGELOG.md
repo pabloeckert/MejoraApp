@@ -3,6 +3,31 @@
 Todas las mejoras notables de este proyecto están documentadas aquí.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [2.0.0] — 2026-11-14
+
+### Añadido
+- **Sprint 1 — El Espejo e Inmersión Cultural** (`b9a8832`, `d729b51`, `20f3d97`, `a65541f`):
+  - Motor de diagnóstico de **4 Dimensiones** (*Estructura*, *Comercial*, *Equipo*, *Visión*) integrado en el *Mirror Estratégico* con visualización Bento Grid y semáforos cromáticos.
+  - Diseño canónico **80/10/5/5** (`#FFFFFF` / `#F8FAFC` / `#1A3D84` / `#E1061E` / `#F7CC13`) con tipografías `League Spartan` y `Bw Modelica`, más soporte de Dark Mode secundario (`[data-theme="dark"]`).
+  - Rediseño de `Splash.tsx`, `HomeDashboard.tsx`, `DiagnosticIntro.tsx` y `DiagnosticLoading.tsx` bajo el **Criterio Medular** de Mejora Continua.
+- **Sprint 2 — Muro Anónimo de Líderes (`N1`) y Mentor IA 24/7** (`504eb34`):
+  - Seudónimos corporativos protegidos en el Muro (`getAnonymousLeaderAlias`), 5 categorías fijas (`Finanzas`, `Socios`, `Comercial`, `Equipo`, `Crisis`) y moderación IA alineada al Criterio Medular (`moderate-post`).
+  - Inyección de contexto 4D del último diagnóstico *Mirror* en `mentor-chat-stream` y `mentor-chat` (SSE) con guiones y diagnóstico accionable.
+- **Sprint 3 — Círculo Dorado (`N2`), Botón de Emergencia (`< 60 min SLA`) y Hardening Final** (`5799b0a`, `76b1acf`):
+  - **Mesa de Alianzas Estratégicas B2B (`CirculoDorado.tsx`)**: filtros por eje (`Distribución`, `Capacidad Instalada`, `Inversión Conjunta`, `Proveedores B2B`), buscador, publicador de oferta/demanda B2B, directorio C-Level y conexión bilateral mediada.
+  - **Botón de Emergencia Empresarial (`Emergencia.tsx`)**: protocolo `< 60 min SLA` con formulario rápido de 3 campos, control de cupo semanal (`N1` 3/semana, `N2` ilimitado), historial en `emergencies` y despacho por WhatsApp.
+  - **Gating 80/10/5/5**: actualización de `ContentGate.tsx` y `UpgradeModal.tsx` con sello *Pacto de Indispensabilidad*.
+  - **Seguridad Multi-Tenant y PWA v6**: migración `20260615000000_sprint3_rls_hardening.sql` con trigger anti-escalación `prevent_client_tier_escalation()`, esquemas `emergencyAlertSchema` y `allianceOpportunitySchema` (Zod + DOMPurify), rate limits dedicados, Service Worker `mejoraapp-v6`, `offline.html` de marca y *deep links* PWA (`/?tab=...`).
+
+### Cambiado
+- **Sanitización de contenido**: reparadas las 219 líneas con *mojibake* UTF-8 en `src/data/businessMirrorTests.ts` (`d729b51`) y agregado test de regresión en `src/test/security.test.ts`.
+- **CSP unificada**: eliminado `'unsafe-eval'` y `frame-ancestors 'none'` del `<meta>` en `index.html` (mantenido en headers HTTP reales de `vercel.json`).
+- **TypeScript strictness**: corregidos errores de tipos en `ProfileCompleteModal.tsx` (`Promise.resolve(...)`) y `UserProfile.tsx` (import de `DataManagement`).
+
+### Seguridad
+- Trigger PostgreSQL `prevent_client_tier_escalation()` en `public.profiles` para bloquear escalación cliente sobre columnas de membresía/billing (`access_level`, `membership_level`, `membership_expires_at`, `tiendup_customer_id`, `tiendup_subscription_id`).
+- Políticas RLS multi-tenant verificadas sobre `public.profiles` y `public.emergencies` + constraint `emergencies_message_length_check`.
+
 ## [1.0.0] — 2026-05-19
 
 ### Añadido

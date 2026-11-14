@@ -1,7 +1,9 @@
 # 📊 MejoraApp — Auditoría Multidisciplinaria y Mejoras
-**Fecha:** 2026-05-06  
+**Fecha:** 2026-05-06 (Snapshot histórico pre-v2.0.0)  
 **Alcance:** Análisis completo desde 40+ perspectivas profesionales  
 **Commit:** Mejoras autónomas aplicadas
+
+> **Nota de vigencia (v2.0.0 — 2026-11-14):** Esta auditoría corresponde a una fotografía histórica previa al refactor de Fase 1 y al roadmap v2.0.0. Los módulos `AdminCRM`, `NPS`, `A/B testing` y `referrals` mencionados debajo fueron eliminados deliberadamente y reemplazados por la arquitectura actual de membresías (`N0`/`N1`/`N2`), Mirror 4D, Mentor IA SSE, Mesa de Alianzas B2B (`CirculoDorado`) y Protocolo de Emergencia (`Emergencia`). Ver [`ARCHITECTURE.md`](../ARCHITECTURE.md) y [`CHANGELOG.md`](../CHANGELOG.md) para el estado vigente.
 
 ---
 
@@ -341,8 +343,8 @@ MejoraApp es una **comunidad de negocios** construida con React 18 + TypeScript 
 | ASO Specialist | 6.5 | PWA discoverability |
 | Performance Mktg | 7 | PostHog events |
 | SEO Specialist | 7 | SEOHead component |
-| BizDev | 7 | Services section |
-| CRM/Lifecycle | 7 | AdminCRM present |
+| BizDev | 7 | Services section (reemplazada en v2.0.0 por Círculo Dorado / Mesa B2B N2) |
+| CRM/Lifecycle | — | Módulo AdminCRM eliminado en refactor Fase 1; reemplazado por gating N0/N1/N2 y Tiendup sync |
 | Content Manager | 7.5 | Content service |
 | Community Mgr | 7.5 | Muro + rules |
 | Pricing Strategy | 7 | Plans system |

@@ -75,11 +75,16 @@ components/
 │   ├── MemberCard.tsx
 │   └── CommunityProfile.tsx
 ├── tabs/               # Tabs principales
-│   ├── ContenidoDeValor.tsx
-│   ├── Muro.tsx
-│   ├── Comunidad.tsx
-│   ├── Mentor.tsx
-│   └── Novedades.tsx
+│   ├── CirculoDorado.tsx   # Círculo Dorado N2 & Mesa de Alianzas B2B
+│   ├── Comunidad.tsx       # Red comunitaria y ranking
+│   ├── ContenidoDeValor.tsx# Biblioteca de contenido estratégico
+│   ├── Emergencia.tsx      # Botón de Emergencia Empresarial (< 60 min SLA)
+│   ├── Eventos.tsx         # Eventos e inscripciones
+│   ├── Mentor.tsx          # Mentor IA 24/7 con contexto 4D
+│   ├── MiPerfil.tsx        # Perfil, membresía y configuración
+│   ├── Muro.tsx            # Muro Anónimo de Líderes N1
+│   ├── Novedades.tsx       # Novedades institucionales
+│   └── RedTab.tsx          # Directorio productivo de la Red
 └── ui/                 # Componentes base (shadcn/ui)
     ├── button.tsx
     ├── card.tsx
@@ -93,17 +98,16 @@ Lógica de negocio y utilidades:
 
 ```
 lib/
-├── ab-testing.ts       # Sistema de A/B testing
 ├── analytics.ts        # PostHog event tracking
-├── funnel.ts           # Funnel de activación (NSM)
-├── plans.ts            # Feature flags y planes
-├── pdfExport.ts        # Exportación de PDF
+├── brand.ts            # Tokens y utilidades de marca
+├── pdfExport.ts        # Exportación de PDF del Mirror
+├── plans.ts            # Feature flags y matriz freemium (N0/N1/N2)
 ├── push.ts             # Web Push notifications
-├── rateLimit.ts        # Rate limiting client-side
+├── rateLimit.ts        # Rate limiting client-side (incl. emergency_alert, alliance_publish)
 ├── security.ts         # Sanitización y XSS prevention
 ├── sentry.ts           # Error tracking
 ├── utils.ts            # cn() helper
-└── validation.ts       # Zod schemas
+└── validation.ts       # Zod + DOMPurify schemas
 ```
 
 ### `src/services/`
@@ -191,25 +195,30 @@ Admin → AdminLoginForm → verify-admin Edge Function → Role check
 
 ## Base de Datos
 
-### Tablas Principales (25)
+### Tablas Principales
 
 | Tabla | Propósito |
 |-------|-----------|
-| `profiles` | Perfiles de usuario |
-| `wall_posts` | Posts del muro anónimo |
-| `wall_comments` | Comentarios en posts |
-| `wall_likes` | Likes en posts |
-| `content_posts` | Contenido de valor |
-| `content_categories` | Categorías de contenido |
-| `diagnostic_results` | Resultados del Mirror |
-| `user_badges` | Badges ganados |
-| `push_subscriptions` | Suscripciones push |
-| `mentor_conversations` | Conversaciones con Mentor IA |
-| `crm_clients` | Clientes del CRM |
-| `crm_products` | Productos del CRM |
-| `crm_interactions` | Interacciones del CRM |
-| `community_challenges` | Desafíos de comunidad |
-| `nps_surveys` | Encuestas NPS |
+| `profiles` | Perfiles, nivel (`access_level` / `membership_level`) y ofertas/búsquedas B2B |
+| `wall_posts` | Posts del Muro Anónimo de Líderes (con categoría y seudónimo) |
+| `wall_comments` | Comentarios y devoluciones metodológicas en el muro |
+| `wall_likes` | Likes en posts del muro |
+| `content_posts` | Contenido de valor multimedia |
+| `content_categories` | Categorías de contenido estratégico |
+| `diagnostic_results` | Resultados históricos del Mirror Estratégico |
+| `business_mirror_tests` | Definición de tests interactivos de Business Mirror Gamer |
+| `business_mirror_results` | Puntajes y perfiles obtenidos por los miembros |
+| `mentor_conversations` | Conversaciones del Mentor IA 24/7 |
+| `mentor_messages` | Mensajes persistidos del Mentor IA |
+| `emergencies` | Tickets de activación del Botón de Emergencia (`< 60 min SLA`) |
+| `events` | Agenda de eventos y encuentros de comunidad |
+| `event_registrations` | Inscripciones y asistencia a eventos |
+| `payments` | Registro de pagos asociados a membresías |
+| `membership_activations` | Historial auditable de activaciones `N1`/`N2` |
+| `tiendup_sync_log` | Auditoría de sincronizaciones con Tiendup |
+| `user_badges` | Insignias desbloqueadas |
+| `push_subscriptions` | Suscripciones Web Push |
+| `community_challenges` | Desafíos semanales de comunidad |
 
 ### Realtime Subscriptions
 

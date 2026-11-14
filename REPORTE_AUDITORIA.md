@@ -78,13 +78,13 @@ Confirmado (re-verificado): las 14 Edge Functions listadas en `CLAUDE.md` coinci
 
 ## Pendientes que requieren decisión humana (resumen)
 
-1. **`src/data/businessMirrorTests.ts`** — 219 líneas de mojibake en contenido premium visible al usuario.
-2. **7 vulnerabilidades de `npm audit`** — solo fix vía `--force` (bumps mayores de vitest/vite/react-router-dom). No aplicados.
-3. **CSP inconsistente** entre `index.html` (meta) y `vercel.json` (header real). No explotable hoy, vale limpiar.
-4. **Credenciales FTP en historial de git** — ya sacadas del tracking, recuperables en commits viejos. Confirmar rotación.
-5. **`CHANGELOG.md` desactualizado** desde v1.0.0.
-6. **`docs/MEJORAS-APLICADAS.md`** — tabla de scoring histórica con varias filas desactualizadas más allá de `AdminCRM`.
-7. **`ci.yml`** — decidir si sacar `continue-on-error` del step de E2E si hay corrida verde confirmada.
+1. ~~**`src/data/businessMirrorTests.ts`** — 219 líneas de mojibake en contenido premium visible al usuario.~~ **[RESUELTO — saneado en `d729b51` y cubierto por test de regresión en `src/test/security.test.ts`]**
+2. **7 vulnerabilidades de `npm audit`** — solo fix vía `--force` (bumps mayores de vitest/vite/react-router-dom). No aplicados (decisión de arquitectura de majors).
+3. ~~**CSP inconsistente** entre `index.html` (meta) y `vercel.json` (header real).~~ **[RESUELTO en `76b1acf` — `'unsafe-eval'` y `frame-ancestors` removidos del `<meta>` en `index.html`]**
+4. **Credenciales FTP en historial de git** — ya sacadas del tracking, recuperables en commits viejos. Confirmar rotación en proveedor legado si aplica (el deploy actual es 100% Vercel).
+5. ~~**`CHANGELOG.md` desactualizado** desde v1.0.0.~~ **[RESUELTO — actualizado a v2.0.0 con todos los entregables de Sprints 1–3]**
+6. ~~**`docs/MEJORAS-APLICADAS.md`** — tabla de scoring histórica con varias filas desactualizadas más allá de `AdminCRM`.~~ **[RESUELTO — marcada como snapshot histórico pre-v2.0.0 y actualizada la fila `CRM/Lifecycle`]**
+7. **`ci.yml`** — decidir si sacar `continue-on-error` del step de E2E tras confirmar corrida verde en GitHub Actions.
 8. Majors disponibles sin aplicar (`react` 18→19, `zod` 3→4, `typescript` 5→7, `tailwindcss` 3→4, etc.) — fuera de rango semver, requieren migración dedicada.
 
 ## Archivos modificados en esta sesión (sin commitear)
