@@ -4,6 +4,7 @@
 -- Vista: community_ranking
 -- Agrega actividad de cada usuario en la comunidad para el ranking.
 -- Usada por useRanking() en useMembers.ts (fallback manual si no existe).
+DROP VIEW IF EXISTS public.community_ranking CASCADE;
 CREATE OR REPLACE VIEW public.community_ranking AS
 SELECT
   p.user_id                                                     AS id,

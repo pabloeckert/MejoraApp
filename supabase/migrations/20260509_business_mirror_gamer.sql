@@ -54,18 +54,22 @@ ALTER TABLE business_mirror_tests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_mirror_results ENABLE ROW LEVEL SECURITY;
 
 -- Tests: todos pueden ver los activos
+DROP POLICY IF EXISTS "bmt_select" ON business_mirror_tests;
 CREATE POLICY "bmt_select" ON business_mirror_tests FOR SELECT USING (is_active = true);
 
 -- Results: usuario ve los suyos, admin ve todos
+DROP POLICY IF EXISTS "bmr_select_own" ON business_mirror_results;
 CREATE POLICY "bmr_select_own" ON business_mirror_results FOR SELECT USING (
   user_id = auth.uid() OR
   EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
 );
+DROP POLICY IF EXISTS "bmr_insert_own" ON business_mirror_results;
 CREATE POLICY "bmr_insert_own" ON business_mirror_results FOR INSERT WITH CHECK (
   user_id = auth.uid()
 );
 
 -- 5. Trigger updated_at
+DROP TRIGGER IF EXISTS update_bmt_updated_at ON business_mirror_tests;
 CREATE TRIGGER update_bmt_updated_at BEFORE UPDATE ON business_mirror_tests
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
