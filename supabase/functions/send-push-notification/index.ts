@@ -7,11 +7,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { withMiddleware } from "../_shared/middleware.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
-import {
-  ApplicationServerKey,
-  PushSubscription,
-  sendNotification,
-} from "https://deno.land/x/web_push/mod.ts";
+import webpush from "npm:web-push@3.6.7";
 
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || "";
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || "";
@@ -91,25 +87,31 @@ Deno.serve(
         return new Response(JSON.stringify({ sent: 0, message: "No subscriptions" }), { headers });
       }
 
-      const vapidKeys = new ApplicationServerKey({
-        publicKey: VAPID_PUBLIC_KEY,
-        privateKey: VAPID_PRIVATE_KEY,
-        subject: VAPID_SUBJECT,
-      });
+      webpush.setVapidDetails(
+        VAPID_SUBJECT,
+        VAPID_PUBLIC_KEY,
+        VAPID_PRIVATE_KEY
+      );
 
       let sent = 0;
       let failed = 0;
 
       for (const sub of subscriptions) {
-        const pushSub: PushSubscription = {
+        const pushSub = {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
         };
 
         try {
-          await sendNotification(pushSub, JSON.stringify({
-            title: notifTitle, body: notifBody, url: notifUrl, tag: notifTag,
-          }), { vapidKeys });
+          await webpush.sendNotification(
+            pushSub,
+            JSON.stringify({
+              title: notifTitle,
+              body: notifBody,
+              url: notifUrl,
+              tag: notifTag,
+            })
+          );
           sent++;
         } catch (err) {
           failed++;
