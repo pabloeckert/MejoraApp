@@ -9,9 +9,8 @@ import { useState } from "react";
 import { Lock, Crown, Star, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { openCheckout } from "@/services/tiendup.service";
+import { startMembershipUpgrade } from "@/services/tiendup.service";
 import type { AccessLevel } from "@/hooks/useAccessLevel";
-import { WA_NUMBER } from "@/data/diagnosticData";
 
 interface UpgradePromptProps {
   currentLevel: AccessLevel;
@@ -35,33 +34,13 @@ export function UpgradePrompt({ currentLevel, requiredLevel, message }: UpgradeP
   const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
-    // 1. Try direct URL if configured
-    const directUrl = info.urlEnvKey ? import.meta.env[info.urlEnvKey] : undefined;
-    if (directUrl) {
-      window.open(directUrl, "_blank");
-      return;
+    setLoading(true);
+    try {
+      const target = requiredLevel === "N2" ? "n2" : "n1";
+      await startMembershipUpgrade(target, currentLevel);
+    } finally {
+      setLoading(false);
     }
-
-    // 2. Try Tiendup API checkout with product ID
-    const productId = info.productEnvKey ? import.meta.env[info.productEnvKey] : undefined;
-
-    if (productId) {
-      setLoading(true);
-      try {
-        await openCheckout(productId);
-        return;
-      } catch (err) {
-        console.warn("[UpgradePrompt] Tiendup checkout failed, falling back to WhatsApp:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    // 3. Fallback: WhatsApp using target number
-    const text = encodeURIComponent(
-      `¡Hola! Quiero hacer el upgrade a ${info.label} (${requiredLevel}). Mi nivel actual es ${currentLevel}.`
-    );
-    window.open(`https://wa.me/${WA_NUMBER}?text=${text}`, "_blank");
   };
 
   return (

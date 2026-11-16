@@ -64,3 +64,7 @@ The project follows a layered architecture to ensure separation of concerns:
 - **Unit Tests:** Located in `src/test/`. Use Vitest and React Testing Library.
 - **E2E Tests:** Located in `e2e/`. Use Playwright. Tests should pass on both Desktop and Mobile (Pixel 5) emulators.
 - **Lighthouse:** Automated accessibility and performance checks are enforced via `.lighthouserc.json`.
+
+## 🎯 Active Execution Runbook (2026–2027)
+- **Primary Continuation Blueprint:** Read [`docs/RUNBOOK_EJECUCION_2026_2027.md`](./RUNBOOK_EJECUCION_2026_2027.md) before starting work. It contains the verified baseline audit (post-Sprint 3), critical blockers (`gemini-2.0-flash` deprecation -> `gemini-3.8-flash`, `config.toml` `verify_jwt`, `mentor_config`, Tiendup checkout wiring, client secret removal), and step-by-step instructions for Sprints 4 and 5 up to final production sign-off.
+- **PowerShell Shell Constraint:** This repository is developed on Windows PowerShell 5.1. Never chain commands with `&&`; use `; if ($LASTEXITCODE -eq 0) { ... }`.

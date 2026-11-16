@@ -152,13 +152,41 @@ export default function Emergencia() {
       const phoneText = cleanPhone ? ` | Tel: ${cleanPhone}` : "";
       const structuredDbMessage = `[${parsed.data.crisisType}] ${impactText}${phoneText}`.slice(0, 500);
 
-      const { error } = await supabase.from("emergencies").insert({
-        user_id: user.id,
-        message: structuredDbMessage,
-        whatsapp_sent: true,
-        sent_at: new Date().toISOString(),
-      });
-      if (error) throw error;
+      // Invocar Edge Function dispatch-emergency (valida cupo en servidor, envía email prioritario y push)
+      let dispatchSucceeded = false;
+      try {
+        const { data: dispatchData, error: dispatchError } = await supabase.functions.invoke("dispatch-emergency", {
+          body: {
+            crisisType: parsed.data.crisisType,
+            message: impactText,
+            contactPhone: cleanPhone || undefined,
+          },
+        });
+
+        if (dispatchError) {
+          console.warn("dispatch-emergency Edge Function error, falling back to direct db/wa:", dispatchError);
+        } else if (dispatchData?.ok) {
+          dispatchSucceeded = true;
+          if (dispatchData.quota?.usedThisWeek !== undefined) {
+            setWeeklyUsed(dispatchData.quota.usedThisWeek);
+          }
+        }
+      } catch (invokeErr) {
+        console.warn("invoke error on dispatch-emergency, using fail-soft fallback:", invokeErr);
+      }
+
+      // Si la Edge Function falló por red/configuración, insertamos directo como fail-soft
+      if (!dispatchSucceeded) {
+        const { error: directInsertError } = await supabase.from("emergencies").insert({
+          user_id: user.id,
+          message: structuredDbMessage,
+          whatsapp_sent: true,
+          sent_at: new Date().toISOString(),
+        });
+        if (directInsertError) {
+          console.warn("Direct emergency insert also failed:", directInsertError);
+        }
+      }
 
       const waLines = [
         `🚨 PROTOCOLO DE EMERGENCIA EMPRESARIAL (${isN2 ? "PRIORIDAD N2 < 60 MIN SLA" : "GUARDIA N1"})`,

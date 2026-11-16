@@ -2,12 +2,13 @@
  * moderate-post — Edge Function para moderación de posts del muro
  *
  * Usa middleware compartido para CORS + Auth + Rate Limiting.
- * Cadena IA: Gemini → Groq → OpenRouter → auto-aprobado.
+ * Cadena IA: Gemini 3.5 Flash Lite → Groq → OpenRouter → auto-aprobado (fail-open).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { withMiddleware } from "../_shared/middleware.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
 import { moderatePostSchema, formatZodError } from "../_shared/schemas.ts";
+import { generateAIText } from "../_shared/ai.ts";
 
 const MODERATION_PROMPT = `Sos el moderador del Muro de Líderes de Mejora Continua, una comunidad privada de dueños y directivos PyME en Argentina. Tu rol es cuidar el Espacio Seguro y el Criterio Medular.
 
@@ -31,89 +32,32 @@ SÉ PERMISIVO con el tono coloquial argentino: frustración genuina, ironía y c
 
 Respondé ÚNICAMENTE en formato JSON: {"action": "approved" o "rejected", "reason": "razón breve en español"}`;
 
-async function callAI(prompt: string): Promise<{ action: string; reason: string } | null> {
-  // Try Gemini first
-  const geminiKey = Deno.env.get("GEMINI_API_KEY");
-  if (geminiKey) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 256 },
-          }),
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const match = text.match(/\{[\s\S]*?\}/);
-        if (match) return JSON.parse(match[0]);
-      }
-    } catch (e) {
-      logWarn("moderate-post", "Gemini failed, trying fallback", { error: String(e) });
+async function moderateContent(content: string): Promise<{ action: string; reason: string } | null> {
+  const res = await generateAIText(
+    [
+      { role: "system", content: MODERATION_PROMPT },
+      { role: "user", content: `Moderá este post del muro anónimo:\n\n"${content}"` },
+    ],
+    {
+      profile: "fast",
+      temperature: 0.2,
+      maxTokens: 256,
+      responseMimeType: "application/json",
+      logTag: "moderate-post",
     }
+  );
+
+  if (!res) {
+    logWarn("moderate-post", "All AI providers failed or unconfigured, auto-approving");
+    return null;
   }
 
-  // Fallback: Groq
-  const groqKey = Deno.env.get("GROQ_API_KEY");
-  if (groqKey) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            { role: "system", content: MODERATION_PROMPT },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.3,
-          max_tokens: 256,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content || "";
-        const match = text.match(/\{[\s\S]*?\}/);
-        if (match) return JSON.parse(match[0]);
-      }
-    } catch (e) {
-      logWarn("moderate-post", "Groq failed, trying fallback", { error: String(e) });
-    }
+  try {
+    const match = res.content.match(/\{[\s\S]*?\}/);
+    if (match) return JSON.parse(match[0]);
+  } catch (e) {
+    logWarn("moderate-post", "Failed to parse moderation JSON", { error: String(e) });
   }
-
-  // Fallback: OpenRouter
-  const orKey = Deno.env.get("OPENROUTER_API_KEY");
-  if (orKey) {
-    try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${orKey}` },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-chat-v3-0324:free",
-          messages: [
-            { role: "system", content: MODERATION_PROMPT },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.3,
-          max_tokens: 256,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content || "";
-        const match = text.match(/\{[\s\S]*?\}/);
-        if (match) return JSON.parse(match[0]);
-      }
-    } catch (e) {
-      logWarn("moderate-post", "OpenRouter failed", { error: String(e) });
-    }
-  }
-
   return null;
 }
 
@@ -129,18 +73,17 @@ Deno.serve(
         return new Response(JSON.stringify({ error: formatZodError(parsed.error) }), { status: 400, headers });
       }
 
-      const content = parsed.data.content.replace(/<[^>]*>/g, "").trim(); // Strip HTML tags
+      const content = parsed.data.content.replace(/<[^>]*>/g, "").trim();
+      const postType = parsed.data.post_type;
       if (content.length === 0) {
         return new Response(JSON.stringify({ error: "El contenido no puede estar vacío." }), { status: 400, headers });
       }
 
-      // Supabase admin client for DB operations
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      // Additional DB-level rate limit: max 3 posts per minute per user
       const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
       const { count } = await supabaseAdmin
         .from("wall_posts")
@@ -156,20 +99,18 @@ Deno.serve(
         );
       }
 
-      // AI moderation
       let modAction = "approved";
       let modReason = "Auto-aprobado (sin IA configurada)";
 
-      const aiResult = await callAI(`Moderá este post del muro anónimo:\n\n"${content}"`);
+      const aiResult = await moderateContent(content);
       if (aiResult) {
-        modAction = aiResult.action || "approved";
+        modAction = aiResult.action === "rejected" ? "rejected" : "approved";
         modReason = aiResult.reason || "Moderado por IA";
       }
 
-      // Insert post with service_role (bypasses RLS)
       const { data: post, error: insertError } = await supabaseAdmin
         .from("wall_posts")
-        .insert({ user_id: user.id, content: content.trim(), status: modAction })
+        .insert({ user_id: user.id, content, post_type: postType, status: modAction })
         .select("id, status")
         .single();
 
@@ -178,12 +119,13 @@ Deno.serve(
         throw new Error("Error al publicar");
       }
 
-      // Log moderation (fire-and-forget)
-      supabaseAdmin.from("moderation_log").insert({
-        post_id: post.id, action: modAction, reason: modReason,
-      }).then(() => {}).catch(() => {});
+      supabaseAdmin
+        .from("moderation_log")
+        .insert({ post_id: post.id, action: modAction, reason: modReason })
+        .then(() => {})
+        .catch(() => {});
 
-      logInfo("moderate-post", "Post created", { post_id: post.id, status: modAction, user_id: user.id });
+      logInfo("moderate-post", "Post created", { post_id: post.id, post_type: postType, status: modAction, user_id: user.id });
 
       if (modAction === "rejected") {
         return new Response(

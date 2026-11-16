@@ -11,6 +11,7 @@ import {
   Trash2,
   Flag,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,9 +99,20 @@ export const PostCard = memo(
           </p>
 
           <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border/50">
-            <span className="text-[11px] text-muted-foreground font-medium">
-              Espacio Seguro · Criterio Medular
-            </span>
+            <button
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent("navigate-tab", {
+                    detail: "mentor",
+                  })
+                );
+              }}
+              className="flex items-center gap-1.5 text-[11px] font-bold text-[#1A3D84] dark:text-blue-400 hover:bg-[#1A3D84]/10 transition-colors px-2.5 py-1 rounded-full"
+              title="Pedir perspectiva metodológica al Mentor IA"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#F7CC13]" />
+              <span>Pedir Perspectiva al Mentor</span>
+            </button>
             <div className="flex items-center gap-1.5">
               {isOwn ? (
                 <button

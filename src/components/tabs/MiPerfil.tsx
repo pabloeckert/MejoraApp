@@ -301,16 +301,8 @@ export function MiPerfil() {
             <Button
               size="sm"
               onClick={async () => {
-                const productId = import.meta.env.VITE_TIENDUP_PRODUCT_N1;
-                if (productId) {
-                  try {
-                    const { openCheckout } = await import("@/services/tiendup.service");
-                    await openCheckout(productId);
-                    return;
-                  } catch { /* fallback */ }
-                }
-                const text = encodeURIComponent("Hola! Quiero info sobre membresías de Mejora Continua.");
-                window.open(`https://wa.me/?text=${text}`, "_blank");
+                const { startMembershipUpgrade } = await import("@/services/tiendup.service");
+                await startMembershipUpgrade("n1", level);
               }}
               className="gap-2"
             >

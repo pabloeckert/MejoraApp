@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ContentGate } from "@/components/ContentGate";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   Crown,
@@ -27,24 +28,20 @@ import {
   Loader2,
   ShieldCheck,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { WA_NUMBER } from "@/data/diagnosticData";
-import { allianceOpportunitySchema, formatZodError } from "@/lib/validation";
 import { isAllowed } from "@/lib/rateLimit";
-
-interface AllianceMember {
-  id: string;
-  user_id?: string;
-  nombre: string | null;
-  apellido?: string | null;
-  display_name?: string | null;
-  empresa: string | null;
-  sector: string | null;
-  empresa_tamano?: string | null;
-  ofrece?: string | null;
-  busca?: string | null;
-}
+import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchActiveAlliances,
+  createAllianceOpportunity,
+  expressAllianceInterest,
+  fetchAllianceMatches,
+  fetchRequestedAllianceIds,
+  AllianceOpportunity,
+  AllianceAxis as ServiceAllianceAxis,
+} from "@/services/alliances.service";
 
 const ALLIANCE_AXES = [
   "Todas",
@@ -57,28 +54,27 @@ const ALLIANCE_AXES = [
 type AllianceAxis = (typeof ALLIANCE_AXES)[number];
 
 function useMesaDeAlianzas() {
-  const [members, setMembers] = useState<AllianceMember[]>([]);
+  const [alliances, setAlliances] = useState<AllianceOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const reload = useCallback(() => {
+  const reload = useCallback(async () => {
     setLoading(true);
-    supabase
-      .from("profiles")
-      .select("id, user_id, nombre, apellido, display_name, empresa, sector, empresa_tamano, ofrece, busca")
-      .eq("visible_en_red", true)
-      .order("created_at", { ascending: false })
-      .limit(24)
-      .then(({ data }) => {
-        setMembers((data ?? []) as AllianceMember[]);
-        setLoading(false);
-      });
+    try {
+      const data = await fetchActiveAlliances();
+      setAlliances(data);
+    } catch (err) {
+      console.warn("Error fetching alliances table, falling back to empty:", err);
+      setAlliances([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     reload();
   }, [reload]);
 
-  return { members, loading, reload };
+  return { alliances, loading, reload };
 }
 
 // ── Preview borrosa 80/10/5/5 ─────────────────────────────────────
@@ -149,31 +145,40 @@ const VIP_FEATURES = [
 function VipView() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { members: allianceMembers, loading: allianceLoading, reload } = useMesaDeAlianzas();
+  const { alliances, loading: allianceLoading, reload } = useMesaDeAlianzas();
 
   const [selectedAxis, setSelectedAxis] = useState<AllianceAxis>("Todas");
   const [searchQuery, setSearchQuery] = useState("");
   const [showPublishForm, setShowPublishForm] = useState(false);
-  const [axisTag, setAxisTag] = useState<Exclude<AllianceAxis, "Todas">>("Distribución");
+  const [axisTag, setAxisTag] = useState<ServiceAllianceAxis>("Distribución");
+  const [titleInput, setTitleInput] = useState("");
   const [ofreceInput, setOfreceInput] = useState("");
   const [buscaInput, setBuscaInput] = useState("");
+  const [regionInput, setRegionInput] = useState("");
   const [savingAlliance, setSavingAlliance] = useState(false);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+  const [aiMatches, setAiMatches] = useState<Map<string, { score: number; reason: string }>>(new Map());
+  const [matchingLoading, setMatchingLoading] = useState(false);
 
-  const filteredMembers = useMemo(() => {
+  // Cargar IDs ya solicitados por el usuario
+  useEffect(() => {
+    if (!user) return;
+    fetchRequestedAllianceIds(user.id).then(setRequestedIds);
+  }, [user]);
+
+  const filteredAlliances = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return allianceMembers.filter((m) => {
-      const textBlob = `${m.nombre ?? ""} ${m.apellido ?? ""} ${m.display_name ?? ""} ${
-        m.empresa ?? ""
-      } ${m.sector ?? ""} ${m.ofrece ?? ""} ${m.busca ?? ""}`.toLowerCase();
+    return alliances.filter((item) => {
+      const textBlob = `${item.title} ${item.ofrece ?? ""} ${item.busca ?? ""} ${item.region ?? ""} ${
+        item.author_name ?? ""
+      } ${item.author_company ?? ""} ${item.author_sector ?? ""}`.toLowerCase();
 
       if (q && !textBlob.includes(q)) return false;
-      if (selectedAxis !== "Todas") {
-        const axisKeyword = selectedAxis.split(" ")[0].toLowerCase();
-        if (!textBlob.includes(axisKeyword)) return false;
-      }
+      if (selectedAxis !== "Todas" && item.axis !== selectedAxis) return false;
       return true;
     });
-  }, [allianceMembers, searchQuery, selectedAxis]);
+  }, [alliances, searchQuery, selectedAxis]);
 
   const handleWhatsApp = (title: string) => {
     const text = encodeURIComponent(
@@ -182,16 +187,62 @@ function VipView() {
     window.open(`https://wa.me/${WA_NUMBER}?text=${text}`, "_blank", "noopener,noreferrer");
   };
 
-  const handleConnectMember = (member: AllianceMember) => {
-    const targetName =
-      member.display_name ||
-      `${member.nombre ?? ""} ${member.apellido ?? ""}`.trim() ||
-      "Miembro N2";
-    const companyInfo = member.empresa ? ` (${member.empresa})` : "";
-    const text = encodeURIComponent(
-      `Hola! Soy miembro del Círculo Dorado (N2) y solicito conexión bilateral mediada en la Mesa de Alianzas con ${targetName}${companyInfo}.`
-    );
-    window.open(`https://wa.me/${WA_NUMBER}?text=${text}`, "_blank", "noopener,noreferrer");
+  const handleConnectAlliance = async (item: AllianceOpportunity) => {
+    if (!user) return;
+    setConnectingId(item.id);
+    try {
+      await expressAllianceInterest({
+        allianceId: item.id,
+        userId: user.id,
+        note: `Interés expresado en alianza [${item.axis}] "${item.title}"`,
+      });
+      setRequestedIds((prev) => new Set([...prev, item.id]));
+
+      const targetAuthor = item.author_name || "Colega C-Level";
+      const companyInfo = item.author_company ? ` (${item.author_company})` : "";
+      const text = encodeURIComponent(
+        `Hola Pablo! Soy miembro del Círculo Dorado (N2) y solicito articulación bilateral para la alianza "${item.title}" de ${targetAuthor}${companyInfo} [Eje: ${item.axis}].`
+      );
+      window.open(`https://wa.me/${WA_NUMBER}?text=${text}`, "_blank", "noopener,noreferrer");
+      toast({
+        title: "Interés registrado en la Mesa B2B",
+        description: "Se abrió el canal de coordinación para la articulación bilateral mediada.",
+      });
+    } catch (err) {
+      console.error("Error expressing interest:", err);
+      toast({
+        title: "No se pudo registrar el interés",
+        description: "Intentá nuevamente o coordiná por WhatsApp directo.",
+        variant: "destructive",
+      });
+    } finally {
+      setConnectingId(null);
+    }
+  };
+
+  const handleRunAiMatching = async () => {
+    if (matchingLoading) return;
+    setMatchingLoading(true);
+    try {
+      const suggestions = await fetchAllianceMatches();
+      const matchMap = new Map<string, { score: number; reason: string }>();
+      for (const s of suggestions) {
+        matchMap.set(s.allianceId, { score: s.score, reason: s.reason });
+      }
+      setAiMatches(matchMap);
+      toast({
+        title: "Matchmaking IA completado",
+        description: `Se detectaron ${suggestions.length} alianzas con alta complementariedad estratégica.`,
+      });
+    } catch (err) {
+      console.warn("Error running AI matches:", err);
+      toast({
+        title: "Mesa de IA temporalmente no disponible",
+        description: "Podés explorar y filtrar las oportunidades manualmente.",
+      });
+    } finally {
+      setMatchingLoading(false);
+    }
   };
 
   const handleNavigateEmergencia = () => {
@@ -201,15 +252,11 @@ function VipView() {
   const handlePublishAlliance = async () => {
     if (!user) return;
 
-    const parsed = allianceOpportunitySchema.safeParse({
-      axis: axisTag,
-      ofrece: ofreceInput,
-      busca: buscaInput,
-    });
-    if (!parsed.success) {
+    const finalTitle = titleInput.trim() || `${axisTag}: ${ofreceInput.trim().slice(0, 45)}...`;
+    if (!ofreceInput.trim() && !buscaInput.trim()) {
       toast({
-        title: "Revisá tu propuesta B2B",
-        description: formatZodError(parsed.error),
+        title: "Completá tu propuesta",
+        description: "Indicá al menos qué aportás o qué contraparte buscás.",
         variant: "destructive",
       });
       return;
@@ -218,7 +265,7 @@ function VipView() {
     if (!isAllowed("alliance_publish")) {
       toast({
         title: "Demasiadas actualizaciones seguidas",
-        description: "Esperá unos minutos antes de volver a editar tu publicación en la Mesa.",
+        description: "Esperá unos minutos antes de volver a publicar en la Mesa.",
         variant: "destructive",
       });
       return;
@@ -226,35 +273,40 @@ function VipView() {
 
     setSavingAlliance(true);
     try {
-      const formattedOfrece = parsed.data.ofrece
-        ? `[${parsed.data.axis}] ${parsed.data.ofrece}`.slice(0, 300)
-        : null;
-      const formattedBusca = parsed.data.busca
-        ? `[${parsed.data.axis}] ${parsed.data.busca}`.slice(0, 300)
-        : null;
+      await createAllianceOpportunity({
+        userId: user.id,
+        axis: axisTag,
+        title: finalTitle,
+        ofrece: ofreceInput.trim() || null,
+        busca: buscaInput.trim() || null,
+        region: regionInput.trim() || null,
+      });
 
-      const { error } = await supabase
+      // Sincronizar campos legados de perfil
+      await supabase
         .from("profiles")
         .update({
-          ofrece: formattedOfrece,
-          busca: formattedBusca,
+          ofrece: `[${axisTag}] ${ofreceInput.trim()}`.slice(0, 300),
+          busca: `[${axisTag}] ${buscaInput.trim()}`.slice(0, 300),
           visible_en_red: true,
         })
         .eq("user_id", user.id);
 
-      if (error) throw error;
-
       toast({
         title: "Alianza publicada en la Mesa",
-        description: "Tu propuesta B2B ya está visible para los decisores del Círculo Dorado.",
+        description: "Tu propuesta B2B ya está activa para los decisores del Círculo Dorado.",
       });
       setShowPublishForm(false);
+      setTitleInput("");
+      setOfreceInput("");
+      setBuscaInput("");
+      setRegionInput("");
       reload();
     } catch (err) {
-      console.error("Error updating alliance:", err);
+      console.error("Error creating alliance:", err);
       toast({
-        title: "No se pudo guardar",
-        description: "Intentá nuevamente en unos segundos.",
+        title: "No se pudo guardar la alianza",
+        description: "Revisá tu conexión o intentá nuevamente.",
         variant: "destructive",
       });
     } finally {
@@ -325,7 +377,7 @@ function VipView() {
 
       {/* Sección: Mesa de Alianzas B2B */}
       <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#1A3D84] dark:text-blue-400 flex items-center gap-1">
               <Handshake className="w-3.5 h-3.5" />
@@ -335,29 +387,45 @@ function VipView() {
               Mesa de Alianzas Estratégicas
             </h2>
           </div>
-          <Button
-            size="sm"
-            onClick={() => setShowPublishForm(!showPublishForm)}
-            className="rounded-xl font-bold text-xs gap-1.5 text-white min-h-[40px]"
-            style={{ backgroundColor: "#1A3D84" }}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            {showPublishForm ? "Cerrar" : "Postular Alianza"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRunAiMatching}
+              disabled={matchingLoading}
+              className="rounded-xl font-bold text-xs gap-1.5 border-[#1A3D84]/40 text-[#1A3D84] dark:text-blue-400 min-h-[40px]"
+            >
+              {matchingLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-[#F7CC13]" />
+              )}
+              Matchmaking IA
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowPublishForm(!showPublishForm)}
+              className="rounded-xl font-bold text-xs gap-1.5 text-white min-h-[40px]"
+              style={{ backgroundColor: "#1A3D84" }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {showPublishForm ? "Cerrar" : "Postular Alianza"}
+            </Button>
+          </div>
         </div>
 
-        {/* Formulario desplegable para publicar oferta/búsqueda en la Mesa */}
+        {/* Formulario desplegable para publicar oportunidad en la Mesa */}
         {showPublishForm && (
           <div className="bg-secondary/50 border border-border rounded-xl p-4 space-y-3 animate-fade-in">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground mr-1">
-                Tipo de alianza:
+                Eje estratégico:
               </span>
               {ALLIANCE_AXES.filter((a) => a !== "Todas").map((axis) => (
                 <button
                   key={axis}
                   type="button"
-                  onClick={() => setAxisTag(axis as Exclude<AllianceAxis, "Todas">)}
+                  onClick={() => setAxisTag(axis as ServiceAllianceAxis)}
                   className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors ${
                     axisTag === axis
                       ? "bg-[#1A3D84] text-white border-[#1A3D84]"
@@ -371,12 +439,24 @@ function VipView() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground block">
+                Título o síntesis de la oportunidad
+              </label>
+              <Input
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value.slice(0, 100))}
+                placeholder="Ej: Distribución logística en NEA para productos masivos..."
+                className="h-10 text-xs bg-card"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground block">
                 ¿Qué capacidad, estructura o activo aportás a la alianza?
               </label>
               <Textarea
                 value={ofreceInput}
                 onChange={(e) => setOfreceInput(e.target.value.slice(0, 260))}
-                placeholder="Ej: Red de distribución nacional en canal ferretero con logística propia..."
+                placeholder="Ej: Flota propia, 1200 puntos de entrega activos, equipo de ventas..."
                 className="min-h-[64px] text-xs bg-card"
               />
             </div>
@@ -388,8 +468,20 @@ function VipView() {
               <Textarea
                 value={buscaInput}
                 onChange={(e) => setBuscaInput(e.target.value.slice(0, 260))}
-                placeholder="Ej: Fabricantes nacionales con capacidad ociosa para marca conjunta..."
+                placeholder="Ej: Fabricantes con marca consolidada que busquen penetración en la región..."
                 className="min-h-[64px] text-xs bg-card"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground block">
+                Alcance geográfico / Región
+              </label>
+              <Input
+                value={regionInput}
+                onChange={(e) => setRegionInput(e.target.value.slice(0, 50))}
+                placeholder="Ej: Misiones, Corrientes / Todo el país"
+                className="h-10 text-xs bg-card"
               />
             </div>
 
@@ -443,7 +535,7 @@ function VipView() {
           </div>
         </div>
 
-        {/* Listado Bento de Decisores */}
+        {/* Listado Bento de Oportunidades B2B */}
         {allianceLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -453,11 +545,11 @@ function VipView() {
               />
             ))}
           </div>
-        ) : filteredMembers.length === 0 ? (
+        ) : filteredAlliances.length === 0 ? (
           <div className="rounded-xl p-6 text-center bg-secondary/30 border border-dashed border-border space-y-2">
             <Users className="w-7 h-7 text-muted-foreground mx-auto" />
             <p className="text-xs sm:text-sm font-bold text-foreground">
-              Sin coincidencias para este filtro en la Mesa
+              Sin alianzas registradas para este filtro en la Mesa
             </p>
             <p className="text-xs text-muted-foreground">
               Publicá tu oportunidad arriba para que otros directores puedan articular con tu empresa.
@@ -465,11 +557,8 @@ function VipView() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {filteredMembers.map((member) => {
-              const fullName =
-                member.display_name ||
-                `${member.nombre ?? ""} ${member.apellido ?? ""}`.trim() ||
-                "Decisor C-Level";
+            {filteredAlliances.map((item) => {
+              const fullName = item.author_name || "Decisor C-Level";
               const initials =
                 fullName
                   .split(" ")
@@ -478,55 +567,108 @@ function VipView() {
                   .join("")
                   .toUpperCase() || "MC";
 
+              const matchInfo = aiMatches.get(item.id);
+              const alreadyRequested = requestedIds.has(item.id);
+              const isOwner = user?.id === item.user_id;
+
               return (
                 <div
-                  key={member.id}
-                  className="rounded-xl p-3.5 bg-secondary/30 border border-border hover:border-[#1A3D84]/40 transition-colors flex flex-col justify-between gap-3"
+                  key={item.id}
+                  className="rounded-xl p-3.5 bg-secondary/30 border border-border hover:border-[#1A3D84]/40 transition-colors flex flex-col justify-between gap-3 relative"
                 >
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white shrink-0"
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white shrink-0"
+                          style={{ backgroundColor: "#1A3D84" }}
+                        >
+                          {initials}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs font-extrabold text-foreground block truncate">
+                            {fullName}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground block truncate">
+                            {[item.author_company, item.author_sector, item.region]
+                              .filter(Boolean)
+                              .join(" · ") || "Miembro Círculo Dorado"}
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-extrabold text-white shrink-0"
                         style={{ backgroundColor: "#1A3D84" }}
                       >
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-extrabold text-foreground block truncate">
-                          {fullName}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground block truncate">
-                          {[member.empresa, member.sector].filter(Boolean).join(" · ") ||
-                            "Miembro Verificado"}
-                        </span>
-                      </div>
+                        {item.axis}
+                      </span>
                     </div>
 
-                    {(member.ofrece || member.busca) && (
+                    {matchInfo && (
+                      <div className="bg-[#F7CC13]/15 border border-[#F7CC13]/40 rounded-lg p-2 text-[11px] space-y-0.5">
+                        <span className="font-extrabold text-[#946c00] flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Match Estratégico IA ({Math.round(matchInfo.score * 100)}%)
+                        </span>
+                        <p className="text-muted-foreground text-[10px] leading-snug">
+                          {matchInfo.reason}
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <h4 className="text-xs font-extrabold text-foreground leading-snug">
+                        {item.title}
+                      </h4>
+                    </div>
+
+                    {(item.ofrece || item.busca) && (
                       <div className="space-y-1 pt-1 border-t border-border/60 text-[11px]">
-                        {member.ofrece && (
+                        {item.ofrece && (
                           <p className="text-foreground line-clamp-2">
                             <strong className="text-[#1A3D84] dark:text-blue-400">Aporta:</strong>{" "}
-                            {member.ofrece}
+                            {item.ofrece}
                           </p>
                         )}
-                        {member.busca && (
+                        {item.busca && (
                           <p className="text-foreground line-clamp-2">
-                            <strong className="text-[#B48600]">Busca:</strong> {member.busca}
+                            <strong className="text-[#B48600]">Busca:</strong> {item.busca}
                           </p>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleConnectMember(member)}
-                    className="w-full min-h-[38px] rounded-lg text-[11px] font-extrabold border border-[#1A3D84]/30 text-[#1A3D84] dark:text-blue-400 hover:bg-[#1A3D84]/10 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <span>Solicitar Conexión Bilateral</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                  {!isOwner ? (
+                    <button
+                      type="button"
+                      disabled={connectingId === item.id}
+                      onClick={() => handleConnectAlliance(item)}
+                      className={`w-full min-h-[38px] rounded-lg text-[11px] font-extrabold transition-colors flex items-center justify-center gap-1 ${
+                        alreadyRequested
+                          ? "bg-secondary text-foreground border border-border"
+                          : "border border-[#1A3D84]/40 text-[#1A3D84] dark:text-blue-400 hover:bg-[#1A3D84]/10"
+                      }`}
+                    >
+                      {connectingId === item.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : alreadyRequested ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span>Contacto Solicitado (Reabrir WhatsApp)</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Solicitar Articulación Bilateral</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="text-[10px] font-bold text-muted-foreground text-center py-1">
+                      Tu oportunidad activa
+                    </div>
+                  )}
                 </div>
               );
             })}

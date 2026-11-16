@@ -1,27 +1,43 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
-import ContenidoDeValor from "@/components/tabs/ContenidoDeValor";
-import Muro from "@/components/tabs/Muro";
-import Novedades from "@/components/tabs/Novedades";
-import Comunidad from "@/components/tabs/Comunidad";
-import Mentor from "@/components/tabs/Mentor";
-import DiagnosticTest from "@/components/DiagnosticTest";
-import { MirrorPage } from "@/components/mirror/MirrorPage";
-import Emergencia from "@/components/tabs/Emergencia";
-import Eventos from "@/components/tabs/Eventos";
-import CirculoDorado from "@/components/tabs/CirculoDorado";
-import { MiPerfil } from "@/components/tabs/MiPerfil";
 import ProfileCompleteModal from "@/components/ProfileCompleteModal";
-import { RedTab } from "@/components/tabs/RedTab";
-import { HomeDashboard } from "@/components/home/HomeDashboard";
 import { trackPageView, trackTabSwitch } from "@/lib/analytics";
 import { useLastVisit } from "@/hooks/useLastVisit";
 import { useProfileComplete } from "@/hooks/useProfile";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { FeatureBoundary } from "@/components/FeatureBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy loading modular de tabs (garantiza bundle inicial < 100 kB)
+const HomeDashboard = lazy(() => import("@/components/home/HomeDashboard").then((m) => ({ default: m.HomeDashboard })));
+const ContenidoDeValor = lazy(() => import("@/components/tabs/ContenidoDeValor"));
+const DiagnosticTest = lazy(() => import("@/components/DiagnosticTest"));
+const MirrorPage = lazy(() => import("@/components/mirror/MirrorPage").then((m) => ({ default: m.MirrorPage })));
+const Emergencia = lazy(() => import("@/components/tabs/Emergencia"));
+const Eventos = lazy(() => import("@/components/tabs/Eventos"));
+const CirculoDorado = lazy(() => import("@/components/tabs/CirculoDorado"));
+const RedTab = lazy(() => import("@/components/tabs/RedTab").then((m) => ({ default: m.RedTab })));
+const Muro = lazy(() => import("@/components/tabs/Muro"));
+const Comunidad = lazy(() => import("@/components/tabs/Comunidad"));
+const Mentor = lazy(() => import("@/components/tabs/Mentor"));
+const Novedades = lazy(() => import("@/components/tabs/Novedades"));
+const MiPerfil = lazy(() => import("@/components/tabs/MiPerfil").then((m) => ({ default: m.MiPerfil })));
+
+function TabLoadingSkeleton() {
+  return (
+    <div className="space-y-4 animate-fade-in py-2">
+      <Skeleton className="h-28 w-full rounded-2xl" />
+      <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      </div>
+      <Skeleton className="h-44 w-full rounded-2xl" />
+    </div>
+  );
+}
 
 const SPLASH_SEEN_KEY = "mc-splash-seen";
 
@@ -79,17 +95,32 @@ const Index = () => {
     markVisited(activeTab);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Track tab switches, save/restore scroll position, and mark visited
+  // Track tab switches with View Transitions API (2026-2027 UX) and scroll restoration
   const handleTabChange = (tab: string) => {
-    // Save current scroll position
     scrollPositions.current[activeTab] = window.scrollY;
     trackTabSwitch(activeTab, tab);
     markVisited(tab);
-    setActiveTab(tab);
-    // Restore scroll position for new tab (after render)
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollPositions.current[tab] ?? 0);
-    });
+
+    const updateTab = () => {
+      setActiveTab(tab);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPositions.current[tab] ?? 0);
+      });
+    };
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (
+      typeof document !== "undefined" &&
+      "startViewTransition" in document &&
+      !prefersReducedMotion
+    ) {
+      (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(updateTab);
+    } else {
+      updateTab();
+    }
   };
 
   if (loading) {
@@ -129,19 +160,21 @@ const Index = () => {
       <SEOHead {...SEO_CONFIGS.index} />
       <AppHeader />
       <main className="max-w-lg mx-auto px-4 py-4" role="main">
-        {activeTab === "home" && <FeatureBoundary feature="Home"><HomeDashboard onNavigate={handleTabChange} /></FeatureBoundary>}
-        {activeTab === "contenido" && <FeatureBoundary feature="Contenido"><ContenidoDeValor /></FeatureBoundary>}
-        {activeTab === "diagnostico" && <FeatureBoundary feature="Diagnóstico"><DiagnosticTest onComplete={() => setActiveTab("home")} /></FeatureBoundary>}
-        {activeTab === "mirror" && <FeatureBoundary feature="Business Mirror"><MirrorPage /></FeatureBoundary>}
-        {activeTab === "emergencia" && <FeatureBoundary feature="Emergencia"><Emergencia /></FeatureBoundary>}
-        {activeTab === "eventos" && <FeatureBoundary feature="Eventos"><Eventos /></FeatureBoundary>}
-        {activeTab === "circulo" && <FeatureBoundary feature="Círculo Dorado"><CirculoDorado /></FeatureBoundary>}
-        {activeTab === "red" && <FeatureBoundary feature="Red"><RedTab /></FeatureBoundary>}
-        {activeTab === "muro" && <FeatureBoundary feature="Muro"><Muro /></FeatureBoundary>}
-        {activeTab === "comunidad" && <FeatureBoundary feature="Comunidad"><Comunidad /></FeatureBoundary>}
-        {activeTab === "mentor" && <FeatureBoundary feature="Mentor IA"><Mentor /></FeatureBoundary>}
-        {activeTab === "novedades" && <FeatureBoundary feature="Novedades"><Novedades /></FeatureBoundary>}
-        {activeTab === "perfil" && <FeatureBoundary feature="Mi Perfil"><MiPerfil /></FeatureBoundary>}
+        <Suspense fallback={<TabLoadingSkeleton />}>
+          {activeTab === "home" && <FeatureBoundary feature="Home"><HomeDashboard onNavigate={handleTabChange} /></FeatureBoundary>}
+          {activeTab === "contenido" && <FeatureBoundary feature="Contenido"><ContenidoDeValor /></FeatureBoundary>}
+          {activeTab === "diagnostico" && <FeatureBoundary feature="Diagnóstico"><DiagnosticTest onComplete={() => setActiveTab("home")} /></FeatureBoundary>}
+          {activeTab === "mirror" && <FeatureBoundary feature="Business Mirror"><MirrorPage /></FeatureBoundary>}
+          {activeTab === "emergencia" && <FeatureBoundary feature="Emergencia"><Emergencia /></FeatureBoundary>}
+          {activeTab === "eventos" && <FeatureBoundary feature="Eventos"><Eventos /></FeatureBoundary>}
+          {activeTab === "circulo" && <FeatureBoundary feature="Círculo Dorado"><CirculoDorado /></FeatureBoundary>}
+          {activeTab === "red" && <FeatureBoundary feature="Red"><RedTab /></FeatureBoundary>}
+          {activeTab === "muro" && <FeatureBoundary feature="Muro"><Muro /></FeatureBoundary>}
+          {activeTab === "comunidad" && <FeatureBoundary feature="Comunidad"><Comunidad /></FeatureBoundary>}
+          {activeTab === "mentor" && <FeatureBoundary feature="Mentor IA"><Mentor /></FeatureBoundary>}
+          {activeTab === "novedades" && <FeatureBoundary feature="Novedades"><Novedades /></FeatureBoundary>}
+          {activeTab === "perfil" && <FeatureBoundary feature="Mi Perfil"><MiPerfil /></FeatureBoundary>}
+        </Suspense>
       </main>
       <BottomNav
         activeTab={activeTab}

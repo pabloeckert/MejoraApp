@@ -1,35 +1,22 @@
 /**
- * mentor-chat-stream — Streaming SSE version of Mentor IA
- *
- * Returns a Server-Sent Events stream so the UI can render
- * tokens progressively instead of waiting for the full response.
+ * mentor-chat-stream — Streaming SSE version of Mentor IA (Gemini 3.8 + GenUI)
  *
  * SSE protocol:
- *   data: {"chunk":"texto..."}\n\n          ← token parcial
- *   data: {"done":true,"conversationId":"...","model":"..."}\n\n  ← fin
- *   data: {"error":"mensaje"}\n\n           ← error no-recuperable
+ *   data: {"conversationId":"..."}\n\n
+ *   data: {"chunk":"texto..."}\n\n
+ *   data: {"done":true,"conversationId":"...","model":"..."}\n\n
+ *   data: {"error":"mensaje"}\n\n
  */
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
-
-// ── Types ────────────────────────────────────────────────────────
-
-interface AIMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-
-type ChunkCallback = (text: string) => Promise<void>;
-
-interface StreamResult {
-  content: string;
-  model: string;
-  tokensUsed: number;
-}
-
-// ── Auth helper ──────────────────────────────────────────────────
+import { mentorChatSchema, formatZodError } from "../_shared/schemas.ts";
+import { streamAIText, type AIMessage, type StreamChunkCallback } from "../_shared/ai.ts";
+import {
+  buildUserContext,
+  getMentorConfig,
+  getConversationHistory,
+} from "../_shared/mentorContext.ts";
 
 async function verifyJwt(token: string): Promise<{ id: string; email?: string } | null> {
   try {
@@ -47,8 +34,6 @@ async function verifyJwt(token: string): Promise<{ id: string; email?: string } 
   }
 }
 
-// ── Rate limiter (in-memory, per instance) ───────────────────────
-
 const rlMap = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(key: string, limit: number): boolean {
@@ -63,352 +48,14 @@ function checkRateLimit(key: string, limit: number): boolean {
   return true;
 }
 
-// ── Streaming AI providers ───────────────────────────────────────
-
-async function streamGroq(
-  messages: AIMessage[],
-  onChunk: ChunkCallback
-): Promise<StreamResult | null> {
-  const key = Deno.env.get("GROQ_API_KEY");
-  if (!key) return null;
-
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages,
-        temperature: 0.7,
-        max_tokens: 512,
-        stream: true,
-      }),
-    });
-
-    if (!res.ok || !res.body) return null;
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = "";
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") continue;
-
-        try {
-          const parsed = JSON.parse(data);
-          const chunk = parsed.choices?.[0]?.delta?.content;
-          if (chunk) {
-            fullText += chunk;
-            await onChunk(chunk);
-          }
-        } catch {
-          // skip malformed SSE chunk
-        }
-      }
-    }
-
-    return fullText
-      ? { content: fullText, model: "llama-3.3-70b-versatile", tokensUsed: 0 }
-      : null;
-  } catch (e) {
-    logWarn("mentor-chat-stream", "Groq stream failed", { error: String(e) });
-    return null;
-  }
-}
-
-async function streamGemini(
-  messages: AIMessage[],
-  onChunk: ChunkCallback
-): Promise<StreamResult | null> {
-  const key = Deno.env.get("GEMINI_API_KEY");
-  if (!key) return null;
-
-  try {
-    const systemMsg = messages.find((m) => m.role === "system")?.content ?? "";
-    const conversationMsgs = messages.filter((m) => m.role !== "system");
-    const prompt =
-      `${systemMsg}\n\n` +
-      conversationMsgs
-        .map((m) => `${m.role === "user" ? "Usuario" : "Mentor"}: ${m.content}`)
-        .join("\n");
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${key}&alt=sse`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
-        }),
-      }
-    );
-
-    if (!res.ok || !res.body) return null;
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = "";
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-
-        try {
-          const parsed = JSON.parse(data);
-          const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (chunk) {
-            fullText += chunk;
-            await onChunk(chunk);
-          }
-        } catch {
-          // skip malformed chunk
-        }
-      }
-    }
-
-    return fullText
-      ? { content: fullText, model: "gemini-2.0-flash", tokensUsed: 0 }
-      : null;
-  } catch (e) {
-    logWarn("mentor-chat-stream", "Gemini stream failed", { error: String(e) });
-    return null;
-  }
-}
-
-async function streamOpenRouter(
-  messages: AIMessage[],
-  onChunk: ChunkCallback
-): Promise<StreamResult | null> {
-  const key = Deno.env.get("OPENROUTER_API_KEY");
-  if (!key) return null;
-
-  try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek/deepseek-chat-v3-0324:free",
-        messages,
-        temperature: 0.7,
-        max_tokens: 512,
-        stream: true,
-      }),
-    });
-
-    if (!res.ok || !res.body) return null;
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = "";
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") continue;
-
-        try {
-          const parsed = JSON.parse(data);
-          const chunk = parsed.choices?.[0]?.delta?.content;
-          if (chunk) {
-            fullText += chunk;
-            await onChunk(chunk);
-          }
-        } catch {
-          // skip malformed chunk
-        }
-      }
-    }
-
-    return fullText
-      ? { content: fullText, model: "deepseek-v3", tokensUsed: 0 }
-      : null;
-  } catch (e) {
-    logWarn("mentor-chat-stream", "OpenRouter stream failed", { error: String(e) });
-    return null;
-  }
-}
-
-// ── Context helpers (same logic as mentor-chat) ──────────────────
-
-const DIMENSION_QUESTIONS: Array<{
-  id: number;
-  dom: "personal" | "organizacional" | "comercial" | "empresarial";
-  sec: "personal" | "organizacional" | "comercial" | "empresarial";
-}> = [
-  { id: 1, dom: "organizacional", sec: "personal" },
-  { id: 2, dom: "comercial", sec: "empresarial" },
-  { id: 3, dom: "comercial", sec: "personal" },
-  { id: 4, dom: "organizacional", sec: "personal" },
-  { id: 5, dom: "empresarial", sec: "organizacional" },
-  { id: 6, dom: "comercial", sec: "empresarial" },
-  { id: 7, dom: "empresarial", sec: "personal" },
-  { id: 8, dom: "comercial", sec: "empresarial" },
-];
-
-function computeFourDimensions(respuestas: unknown): string | null {
-  if (!respuestas || typeof respuestas !== "object") return null;
-  const scores = { personal: 0, organizacional: 0, comercial: 0, empresarial: 0 };
-  const maxPorArea = { personal: 0, organizacional: 0, comercial: 0, empresarial: 0 };
-  const record = respuestas as Record<string, number>;
-
-  DIMENSION_QUESTIONS.forEach((q, idx) => {
-    const raw = Array.isArray(respuestas) ? respuestas[idx] : record[String(q.id)];
-    const val = typeof raw === "number" ? raw : 3;
-    scores[q.dom] += val * 0.7;
-    scores[q.sec] += val * 0.3;
-    maxPorArea[q.dom] += 5 * 0.7;
-    maxPorArea[q.sec] += 5 * 0.3;
-  });
-
-  const dims = (Object.keys(scores) as Array<keyof typeof scores>).map((area) => {
-    const pct = Math.round((scores[area] / (maxPorArea[area] || 1)) * 100);
-    return `${area}: ${pct}%`;
-  });
-  return dims.join(", ");
-}
-
-async function buildUserContext(
-  supabase: ReturnType<typeof createClient>,
-  userId: string
-): Promise<string> {
-  try {
-    const [{ data: profile }, { data: diagnostic }, { data: badges }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("empresa, cargo, industry")
-        .eq("user_id", userId)
-        .maybeSingle(),
-      supabase
-        .from("diagnostic_results")
-        .select("puntaje_total, perfil, respuestas")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase.from("user_badges").select("badge_id").eq("user_id", userId),
-    ]);
-
-    const parts: string[] = [];
-    if (profile?.empresa) parts.push(`Empresa: ${profile.empresa}`);
-    if (profile?.cargo) parts.push(`Cargo: ${profile.cargo}`);
-    if (profile?.industry) parts.push(`Industria: ${profile.industry}`);
-    if (diagnostic?.perfil) {
-      parts.push(`Perfil Mirror: ${diagnostic.perfil} (${diagnostic.puntaje_total ?? 0}/40 puntos)`);
-      const dimsSummary = computeFourDimensions(diagnostic.respuestas);
-      if (dimsSummary) {
-        parts.push(`Dimensiones 4D: ${dimsSummary}`);
-      }
-    }
-    if (badges?.length) parts.push(`Badges: ${badges.map((b) => b.badge_id).join(", ")}`);
-
-    return parts.length > 0 ? parts.join("\n") : "Sin perfil completado aún.";
-  } catch {
-    return "Contexto no disponible.";
-  }
-}
-
-async function getSystemPrompt(supabase: ReturnType<typeof createClient>): Promise<string> {
-  try {
-    const { data } = await supabase
-      .from("mentor_config")
-      .select("value")
-      .eq("key", "system_prompt")
-      .maybeSingle();
-    return data?.value ?? getDefaultSystemPrompt();
-  } catch {
-    return getDefaultSystemPrompt();
-  }
-}
-
-function getDefaultSystemPrompt(): string {
-  return `Sos el Mentor IA Estratégico de Mejora Continua, la autoridad de dirección para dueños y líderes de PyMEs en Argentina.
-
-MANIFIESTO INTERNO Y CRITERIO MEDULAR (OBLIGATORIO EN CADA RESPUESTA):
-1. La crítica va al sistema y al proceso, jamás a la persona: erradicá la culpa moral del líder y demostrá qué método, proceso o estructura falta construir para resolver los incendios.
-2. Verdad sin maquillaje con calidez real: sé directo, claro y empático. Nada de motivación vacía; diagnosticá el cuello de botella y entregá dirección táctica concreta.
-3. Indispensabilidad metodológica: conectá cada recomendación con el orden de Mejora Continua, el resultado real del Mirror Estratégico del usuario (sus 4 Dimensiones y su arquetipo) y la Red de Líderes.
-
-REGLAS OPERATIVAS:
-- Respondé siempre en español argentino con voseo.
-- Basá tus respuestas en el contexto real del usuario (empresa, cargo, industria, arquetipo Mirror y porcentajes en sus 4 Dimensiones: Personal, Organizacional, Comercial y Empresarial).
-- Priorizá siempre atacar la dimensión con menor puntaje o el cuello de botella mencionado.
-- Entregá pasos accionables concretos (máximo 220 palabras para mantener el chat ágil).
-- No inventes datos que no estén en el contexto; si falta un número clave (facturación, margen o dotación), pedilo.
-- Si preguntan algo ajeno a la dirección de empresas, redirigilo al foco empresarial.`;
-}
-
-async function getConversationHistory(
-  supabase: ReturnType<typeof createClient>,
-  conversationId: string
-): Promise<AIMessage[]> {
-  try {
-    const { data } = await supabase
-      .from("mentor_messages")
-      .select("role, content")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true })
-      .limit(10);
-
-    return (data ?? []).map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-// ── Main handler ─────────────────────────────────────────────────
-
 Deno.serve(async (req: Request): Promise<Response> => {
   const origin = req.headers.get("Origin");
   const corsHeaders = getCorsHeaders(origin);
 
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Missing authorization" }), {
@@ -419,43 +66,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const user = await verifyJwt(authHeader.replace("Bearer ", ""));
   if (!user) {
-    return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+    return new Response(JSON.stringify({ error: "Invalid token" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // Rate limit: 20 req/min
   if (!checkRateLimit(user.id, 20)) {
-    return new Response(JSON.stringify({ error: "Rate limit exceeded. Intentá en un minuto." }), {
+    return new Response(JSON.stringify({ error: "Demasiados mensajes. Esperá un momento." }), {
       status: 429,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // Parse body
-  let message: string;
-  let conversationId: string | null;
-
-  try {
-    const body = await req.json();
-    message = body.message ?? "";
-    conversationId = body.conversationId ?? null;
-  } catch {
-    return new Response(JSON.stringify({ error: "Body inválido" }), {
+  const rawBody = await req.json().catch(() => null);
+  const parsed = mentorChatSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return new Response(JSON.stringify({ error: formatZodError(parsed.error) }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  if (!message.trim() || message.length > 1000) {
-    return new Response(
-      JSON.stringify({ error: "Mensaje requerido (máx 1000 caracteres)" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+  const message = parsed.data.message.trim();
+  const conversationId = parsed.data.conversationId ?? null;
 
-  // SSE stream
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
   const enc = new TextEncoder();
@@ -464,7 +99,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
     await writer.write(enc.encode(`data: ${JSON.stringify(payload)}\n\n`));
   };
 
-  // Process in background — response is returned immediately
   (async () => {
     try {
       const supabase = createClient(
@@ -472,20 +106,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      // Check mentor enabled
-      const { data: cfg } = await supabase
-        .from("mentor_config")
-        .select("value")
-        .eq("key", "enabled")
-        .maybeSingle();
-
-      if (cfg?.value === "false") {
+      const mentorConfig = await getMentorConfig(supabase);
+      if (!mentorConfig.enabled) {
         await send({ error: "El Mentor IA no está disponible en este momento" });
         return;
       }
 
-      // Get or create conversation
       let activeConversationId = conversationId;
+      if (activeConversationId) {
+        const { data: existingConv } = await supabase
+          .from("mentor_conversations")
+          .select("user_id")
+          .eq("id", activeConversationId)
+          .maybeSingle();
+
+        if (!existingConv || existingConv.user_id !== user.id) {
+          logWarn("mentor-chat-stream", "conversationId no pertenece al usuario, creando nueva", {
+            userId: user.id,
+            conversationId: activeConversationId,
+          });
+          activeConversationId = null;
+        }
+      }
 
       if (!activeConversationId) {
         const { data: newConv, error: convError } = await supabase
@@ -506,50 +148,47 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
 
         activeConversationId = newConv.id;
-        // Tell client the new conversation ID immediately so it can track it
         await send({ conversationId: activeConversationId });
       }
 
-      // Build context + history in parallel
-      const [userContext, systemPrompt, history] = await Promise.all([
+      const [userContext, history] = await Promise.all([
         buildUserContext(supabase, user.id),
-        getSystemPrompt(supabase),
-        getConversationHistory(supabase, activeConversationId!),
+        getConversationHistory(supabase, activeConversationId!, 10),
       ]);
 
-      // Save user message
-      await supabase.from("mentor_messages").insert({
+      const { error: userMsgErr } = await supabase.from("mentor_messages").insert({
         conversation_id: activeConversationId,
         user_id: user.id,
         role: "user",
-        content: message.trim(),
+        content: message,
       });
+      if (userMsgErr) {
+        logWarn("mentor-chat-stream", "User message insert failed", { error: userMsgErr.message });
+      }
 
-      // Build messages array
-      const systemWithContext = systemPrompt
+      const systemWithContext = `${mentorConfig.systemPrompt
         .replace("{user_context}", userContext)
         .replace(
           "{conversation_history}",
           history.length > 0
-            ? history
-                .map((m) => `${m.role === "user" ? "Usuario" : "Mentor"}: ${m.content}`)
-                .join("\n")
+            ? history.map((m) => `${m.role === "user" ? "Usuario" : "Mentor"}: ${m.content}`).join("\n")
             : "Primera interacción."
-        );
+        )}\n\nCONTEXTO DEL LÍDER:\n${userContext}`;
 
       const aiMessages: AIMessage[] = [
         { role: "system", content: systemWithContext },
         ...history,
-        { role: "user", content: message.trim() },
+        { role: "user", content: message },
       ];
 
-      // Stream from AI (Groq → Gemini → OpenRouter → fallback)
-      const onChunk: ChunkCallback = (chunk) => send({ chunk });
+      const onChunk: StreamChunkCallback = (chunk) => send({ chunk });
 
-      const result =
-        (await streamGroq(aiMessages, onChunk)) ??
-        (await streamGemini(aiMessages, onChunk)) ??
-        (await streamOpenRouter(aiMessages, onChunk));
+      const result = await streamAIText(aiMessages, onChunk, {
+        thinkingLevel: mentorConfig.thinkingLevel,
+        temperature: 0.7,
+        maxTokens: 900,
+        logTag: "mentor-chat-stream",
+      });
 
       let finalContent: string;
       let finalModel: string;
@@ -558,15 +197,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         finalContent = result.content;
         finalModel = result.model;
       } else {
-        // Fallback: stream the fixed message character by character for consistency
         finalContent =
-          "Disculpá, tuve un problema técnico. ¿Podés reformular tu consulta? Si el problema persiste, contactá al soporte de Mejora Continua.";
+          "Disculpá, en este momento no logré conectar con el motor del Mentor IA. Podés reformular tu consulta en unos segundos o escribirnos directo por el canal de soporte.";
         await send({ chunk: finalContent });
         finalModel = "fallback";
       }
 
-      // Save assistant message
-      await supabase.from("mentor_messages").insert({
+      const { error: assistantErr } = await supabase.from("mentor_messages").insert({
         conversation_id: activeConversationId,
         user_id: user.id,
         role: "assistant",
@@ -574,30 +211,48 @@ Deno.serve(async (req: Request): Promise<Response> => {
         model_used: finalModel,
         tokens_used: result?.tokensUsed ?? 0,
       });
+      if (assistantErr) {
+        logWarn("mentor-chat-stream", "Assistant message insert failed", { error: assistantErr.message });
+      }
+
+      await supabase
+        .from("mentor_conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", activeConversationId);
 
       logInfo("mentor-chat-stream", "Stream complete", {
         userId: user.id,
         conversationId: activeConversationId,
         model: finalModel,
-        chars: finalContent.length,
       });
 
-      // Signal completion
-      await send({ done: true, conversationId: activeConversationId, model: finalModel });
+      await send({
+        done: true,
+        conversationId: activeConversationId,
+        model: finalModel,
+      });
     } catch (e) {
-      logError("mentor-chat-stream", "Unhandled error", { error: String(e) });
-      await send({ error: "Error interno del servidor" });
+      logError("mentor-chat-stream", "Unhandled stream error", { error: String(e) });
+      try {
+        await send({ error: "Error interno del servidor" });
+      } catch {
+        // stream already closed
+      }
     } finally {
-      await writer.close();
+      try {
+        await writer.close();
+      } catch {
+        // already closed
+      }
     }
   })();
 
   return new Response(readable, {
     headers: {
       ...corsHeaders,
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     },
   });

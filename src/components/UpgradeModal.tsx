@@ -1,6 +1,9 @@
-import { X, Check, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { X, Check, ShieldCheck, Loader2 } from "lucide-react";
 import { MEMBERSHIP_CONFIG } from "@/lib/brand";
 import { trackCheckoutOpened } from "@/lib/analytics";
+import { startMembershipUpgrade } from "@/services/tiendup.service";
+import { useToast } from "@/hooks/use-toast";
 
 interface UpgradeModalProps {
   targetLevel: "n1" | "n2";
@@ -8,28 +11,35 @@ interface UpgradeModalProps {
   onClose: () => void;
 }
 
-const CHECKOUT_URLS: Record<"n1" | "n2", string> = {
-  n1: import.meta.env.VITE_TIENDUP_N1_URL ?? "",
-  n2: import.meta.env.VITE_TIENDUP_N2_URL ?? "",
-};
-
 const SOCIAL_PROOF: Record<"n1" | "n2", string> = {
   n1: "Salirse del caos operativo empieza adoptando método y rodeándote de pares.",
   n2: "Un solo acuerdo B2B o crisis destrabada en el Círculo Dorado repaga años de membresía.",
 };
 
 export function UpgradeModal({ targetLevel, isOpen, onClose }: UpgradeModalProps) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+
   if (!isOpen) return null;
 
   const config = MEMBERSHIP_CONFIG[targetLevel];
   const isN2 = targetLevel === "n2";
   const accentColor = isN2 ? "#F7CC13" : "#1A3D84";
-  const checkoutUrl = CHECKOUT_URLS[targetLevel];
 
-  const handlePay = () => {
-    if (checkoutUrl) {
+  const handlePay = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
       trackCheckoutOpened(targetLevel);
-      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
+      const channel = await startMembershipUpgrade(targetLevel);
+      if (channel === "whatsapp") {
+        toast({
+          title: "Canal directo de alta",
+          description: "Abrimos WhatsApp con tu solicitud lista para activar tu membresía.",
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,13 +118,21 @@ export function UpgradeModal({ targetLevel, isOpen, onClose }: UpgradeModalProps
         {/* CTA principal */}
         <button
           onClick={handlePay}
-          className="w-full min-h-[48px] rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90 active:scale-98 shadow-sm"
+          disabled={loading}
+          className="w-full min-h-[48px] rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90 active:scale-98 shadow-sm disabled:opacity-70"
           style={{
             backgroundColor: accentColor,
             color: isN2 ? "#1A1A1A" : "#FFFFFF",
           }}
         >
-          Activar membresía ahora →
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Abriendo alta…
+            </>
+          ) : (
+            "Activar membresía ahora →"
+          )}
         </button>
 
         {/* Nota post-pago */}

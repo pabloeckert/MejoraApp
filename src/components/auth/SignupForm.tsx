@@ -42,7 +42,7 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
 
     const fullName = `${nombre.trim()} ${apellido.trim()}`.trim();
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -70,16 +70,19 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
       toast({ title: "¡Registro exitoso!", description: "Revisá tu email para confirmar tu cuenta." });
       trackSignup("email");
 
-      // Integración central de contactos (Día 6)
-      sincronizarUsuarioBestEffort({
-        source: "mejora_app",
-        email,
-        nombre: fullName || nombre.trim(),
-        metadata: {
-          nombre: nombre.trim(),
-          apellido: apellido.trim(),
-        },
-      });
+      // Solo sincronizar inmediatamente si ya hay sesión activa (sin confirmación pendiente);
+      // si hay confirmación de email, AuthContext sincroniza automáticamente al ingresar.
+      if (data.session) {
+        sincronizarUsuarioBestEffort({
+          source: "mejora_app",
+          email,
+          nombre: fullName || nombre.trim(),
+          metadata: {
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+          },
+        });
+      }
     }
     setLoading(false);
   };

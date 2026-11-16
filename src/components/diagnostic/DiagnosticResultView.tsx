@@ -1,7 +1,7 @@
 /** DiagnosticResultView — Results display with recommendations and CTAs */
 
 import { useMemo } from "react";
-import { MessageCircle, BookOpen, Download, Lightbulb } from "lucide-react";
+import { MessageCircle, BookOpen, Download, Lightbulb, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,6 +69,11 @@ export const DiagnosticResultView = ({
     const vals = Object.values(scores);
     return Math.round(vals.reduce((a, b) => a + b, 0) / (vals.length || 1));
   }, [scores, puntaje]);
+
+  const weakestArea = useMemo(() => {
+    if (!areaList || areaList.length === 0) return null;
+    return [...areaList].sort((a, b) => a.porcentaje - b.porcentaje)[0];
+  }, [areaList]);
 
   const waMsg = encodeURIComponent(
     `Hola, hice el Mirror de Mejora Continua. Mi Mirror es: "${perfilData.tagline}". Quiero hablar.`
@@ -256,6 +261,39 @@ export const DiagnosticResultView = ({
           ) : null}
         </div>
       </FeatureGate>
+
+      {/* Deep-linking Mentor IA con la dimensión más débil */}
+      {weakestArea && (
+        <div className="bg-[#1A3D84]/5 border-2 border-[#1A3D84]/20 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-sm">
+          <div className="space-y-0.5 min-w-0">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#1A3D84] dark:text-blue-400 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-[#F7CC13]" />
+              Plan de Acción con Mentor IA
+            </span>
+            <p className="text-xs font-bold text-foreground">
+              Tu área con mayor margen de mejora: <span className="text-[#E1061E]">{weakestArea.nombre} ({weakestArea.porcentaje}%)</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Abrí una sesión guiada con el Mentor para trazar un plan táctico de 72 horas y destrabar esta dimensión.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("navigate-tab", {
+                  detail: "mentor",
+                })
+              );
+            }}
+            className="text-white text-xs font-black rounded-xl shrink-0 gap-1.5 min-h-[38px]"
+            style={{ backgroundColor: "#1A3D84" }}
+          >
+            <span>Trabajar con Mentor</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="flex gap-2">

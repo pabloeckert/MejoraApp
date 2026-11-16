@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Sparkles, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ const LoginForm = ({ onSwitchToSignup }: LoginFormProps) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sendingMagicLink, setSendingMagicLink] = useState(false);
 
   const humanizeAuthError = (msg: string): string => {
     const lower = msg.toLowerCase();
@@ -43,6 +44,40 @@ const LoginForm = ({ onSwitchToSignup }: LoginFormProps) => {
       trackLogin("email");
     }
     setLoading(false);
+  };
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      toast({
+        title: "Ingresá tu email",
+        description: "Escribí tu email para enviarte el enlace de acceso directo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSendingMagicLink(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      toast({
+        title: "Enlace enviado al correo ✉️",
+        description: "Revisá tu bandeja de entrada para ingresar con 1 solo click sin contraseña.",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast({
+        title: "No se pudo enviar el enlace",
+        description: humanizeAuthError(msg),
+        variant: "destructive",
+      });
+    } finally {
+      setSendingMagicLink(false);
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -117,10 +152,34 @@ const LoginForm = ({ onSwitchToSignup }: LoginFormProps) => {
       <Button
         type="submit"
         className="w-full h-11 bg-mc-dark-blue hover:bg-mc-dark-blue/90 gap-2"
-        disabled={loading}
+        disabled={loading || sendingMagicLink}
       >
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
         {loading ? "Ingresando…" : "Iniciar sesión"}
+      </Button>
+
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground font-bold">O también</span>
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleMagicLink}
+        disabled={loading || sendingMagicLink}
+        className="w-full h-11 gap-2 border-[#1A3D84]/30 text-[#1A3D84] dark:text-blue-400 font-bold"
+      >
+        {sendingMagicLink ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Mail className="w-4 h-4" />
+        )}
+        Ingresar sin contraseña (Magic Link)
       </Button>
 
       <p className="text-center text-sm text-muted-foreground pt-2">

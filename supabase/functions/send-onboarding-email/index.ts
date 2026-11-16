@@ -162,6 +162,19 @@ Deno.serve(
       return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
     }
 
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const cronHeader = req.headers.get("x-cron-secret") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const cronSecret = Deno.env.get("CRON_SECRET") ?? "";
+    const isAuthorized =
+      (serviceKey && authHeader === `Bearer ${serviceKey}`) ||
+      (cronSecret && cronHeader === cronSecret);
+
+    if (!isAuthorized) {
+      logWarn("send-onboarding-email", "Unauthorized trigger attempt");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+
     if (!RESEND_API_KEY) {
       logWarn("send-onboarding-email", "No RESEND_API_KEY configured");
       return new Response(JSON.stringify({ error: "Email service not configured" }), { status: 503 });

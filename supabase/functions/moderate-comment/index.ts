@@ -1,69 +1,41 @@
 /**
  * moderate-comment — Edge Function para moderación de comentarios
  *
- * Usa middleware compartido para CORS + Auth + Rate Limiting.
- * Cadena IA: Gemini → Groq → auto-aprobado.
+ * Cadena IA: Gemini 3.5 Flash Lite → Groq → OpenRouter → auto-aprobado.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { withMiddleware } from "../_shared/middleware.ts";
 import { logInfo, logWarn, logError } from "../_shared/log.ts";
 import { moderateCommentSchema, formatZodError } from "../_shared/schemas.ts";
+import { generateAIText } from "../_shared/ai.ts";
 
-const MODERATION_PROMPT = `Sos el moderador de MejoraOK, comunidad de negocios argentina. Decidí si un comentario es apropiado.
-APROBÁS: experiencias, preguntas, consejos, reflexiones de negocio.
-RECHAZÁS: spam, publicidad, insultos, datos personales, contenido irrelevante.
-SÉ PERMISIVO con el tono argentino. Respondé ÚNICAMENTE en JSON: {"action":"approved" o "rejected","reason":"breve razón"}`;
+const MODERATION_PROMPT = `Sos el moderador de Mejora Continua, comunidad privada de líderes PyME en Argentina. Cuidás el Criterio Medular: la crítica va al proceso y al sistema, jamás a la persona.
+APROBÁS: experiencias, preguntas, consejos pragmáticos, devoluciones respetuosas entre pares.
+RECHAZÁS: spam, autopromoción, insultos personales, datos personales (teléfonos, emails, CUIT), contenido irrelevante.
+SÉ PERMISIVO con el tono coloquial argentino. Respondé ÚNICAMENTE en JSON: {"action":"approved" o "rejected","reason":"breve razón"}`;
 
-async function callAI(prompt: string): Promise<{ action: string; reason: string } | null> {
-  const geminiKey = Deno.env.get("GEMINI_API_KEY");
-  if (geminiKey) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${MODERATION_PROMPT}\n\n${prompt}` }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 256 },
-          }),
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const match = text.match(/\{[\s\S]*?\}/);
-        if (match) return JSON.parse(match[0]);
-      }
-    } catch (e) {
-      logWarn("moderate-comment", "Gemini failed", { error: String(e) });
+async function moderateComment(content: string): Promise<{ action: string; reason: string } | null> {
+  const res = await generateAIText(
+    [
+      { role: "system", content: MODERATION_PROMPT },
+      { role: "user", content: `Moderá este comentario:\n\n"${content}"` },
+    ],
+    {
+      profile: "fast",
+      temperature: 0.2,
+      maxTokens: 256,
+      responseMimeType: "application/json",
+      logTag: "moderate-comment",
     }
-  }
+  );
+  if (!res) return null;
 
-  const groqKey = Deno.env.get("GROQ_API_KEY");
-  if (groqKey) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqKey}` },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "system", content: MODERATION_PROMPT }, { role: "user", content: prompt }],
-          temperature: 0.3,
-          max_tokens: 256,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content || "";
-        const match = text.match(/\{[\s\S]*?\}/);
-        if (match) return JSON.parse(match[0]);
-      }
-    } catch (e) {
-      logWarn("moderate-comment", "Groq failed", { error: String(e) });
-    }
+  try {
+    const match = res.content.match(/\{[\s\S]*?\}/);
+    if (match) return JSON.parse(match[0]);
+  } catch (e) {
+    logWarn("moderate-comment", "Failed to parse moderation JSON", { error: String(e) });
   }
-
   return null;
 }
 
@@ -80,7 +52,7 @@ Deno.serve(
       }
 
       const post_id = parsed.data.post_id;
-      const content = parsed.data.content.replace(/<[^>]*>/g, "").trim(); // Strip HTML tags
+      const content = parsed.data.content.replace(/<[^>]*>/g, "").trim();
       if (content.length === 0) {
         return new Response(JSON.stringify({ error: "El contenido no puede estar vacío." }), { status: 400, headers });
       }
@@ -90,7 +62,6 @@ Deno.serve(
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      // DB-level rate limit: 10 comments per minute
       const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
       const { count } = await supabaseAdmin
         .from("wall_comments")
@@ -106,20 +77,18 @@ Deno.serve(
         );
       }
 
-      // AI moderation
       let modAction = "approved";
       let modReason = "Auto-aprobado";
 
-      const aiResult = await callAI(`Moderá este comentario:\n\n"${content}"`);
+      const aiResult = await moderateComment(content);
       if (aiResult) {
-        modAction = aiResult.action || "approved";
+        modAction = aiResult.action === "rejected" ? "rejected" : "approved";
         modReason = aiResult.reason || "Moderado por IA";
       }
 
-      // Insert comment with service_role
       const { data: comment, error: insertError } = await supabaseAdmin
         .from("wall_comments")
-        .insert({ post_id, user_id: user.id, content: content.trim(), status: modAction })
+        .insert({ post_id, user_id: user.id, content, status: modAction })
         .select("id, post_id, content, created_at, user_id, status")
         .single();
 
@@ -128,15 +97,18 @@ Deno.serve(
         throw new Error("Error al publicar comentario");
       }
 
-      // Log moderation (fire-and-forget)
       if (comment) {
-        supabaseAdmin.from("moderation_comments_log").insert({
-          comment_id: comment.id, action: modAction, reason: modReason,
-        }).then(() => {}).catch(() => {});
+        supabaseAdmin
+          .from("moderation_comments_log")
+          .insert({ comment_id: comment.id, action: modAction, reason: modReason })
+          .then(() => {})
+          .catch(() => {});
       }
 
       logInfo("moderate-comment", "Comment created", {
-        comment_id: comment?.id, status: modAction, user_id: user.id,
+        comment_id: comment?.id,
+        status: modAction,
+        user_id: user.id,
       });
 
       if (modAction === "rejected") {

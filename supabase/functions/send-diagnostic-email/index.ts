@@ -31,7 +31,7 @@ const PERFILES: Record<string, { tagline: string; recommendation: string }> = {
 };
 
 Deno.serve(
-  withMiddleware({ auth: false, rateLimit: 10 }, async (req, _ctx) => {
+  withMiddleware({ auth: true, rateLimit: 10 }, async (req, ctx) => {
     const headers = { "Content-Type": "application/json" };
 
     if (req.method !== "POST") {
@@ -52,6 +52,10 @@ Deno.serve(
 
       if (!user_id || !perfil) {
         return new Response("Missing required fields", { status: 400 });
+      }
+
+      if (ctx.user && ctx.user.id !== user_id) {
+        return new Response("Forbidden", { status: 403 });
       }
 
       const { data: userData, error: userError } = await supabase.auth.admin.getUserById(user_id);
@@ -91,7 +95,7 @@ Deno.serve(
               </div>
               <p style="color: #718096; font-size: 14px; line-height: 1.6;">
                 Si querés hablar con un especialista sobre tu diagnóstico, respondé a este email o escribinos por
-                <a href="https://wa.me/5491100000000" style="color: #25d366;">WhatsApp</a>.
+                <a href="https://wa.me/543764358152" style="color: #25d366;">WhatsApp</a>.
               </p>
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
               <p style="color: #a0aec0; font-size: 12px;">

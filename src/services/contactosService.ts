@@ -1,20 +1,11 @@
 /**
  * Servicio de integración con el Gateway Central de Contactos (MejoraContactos / CRM)
- * Endpoint: https://tzatuvxatsduuslxqdtm.supabase.co/functions/v1/contactos-api
+ * Proxy server-side: Edge Function `sync-contactos` (sin secretos en el bundle del navegador).
  *
- * Principio: Fail-Soft obligatorio. Si la API de contactos no responde o falla la red,
+ * Principio: Fail-Soft obligatorio. Si el proxy o CRM externo falla,
  * el flujo de la aplicación jamás debe interrumpirse ni mostrar errores al usuario final.
  */
-
-export const CONTACTOS_API_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CONTACTOS_API_URL) ||
-  (typeof process !== 'undefined' && (process.env?.VITE_CONTACTOS_API_URL || process.env?.CONTACTOS_API_URL)) ||
-  'https://tzatuvxatsduuslxqdtm.supabase.co/functions/v1/contactos-api';
-
-export const CONTACTOS_API_KEY =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CONTACTOS_API_KEY) ||
-  (typeof process !== 'undefined' && (process.env?.VITE_CONTACTOS_API_KEY || process.env?.CONTACTOS_API_KEY)) ||
-  'a87936c05a3b39471007488850ec9ee568ded426f245e7c87f4d63a74483917b';
+import { supabase } from '@/integrations/supabase/client';
 
 export const STORAGE_KEY_PERSONA_ID = 'mejora_persona_id';
 
@@ -41,9 +32,6 @@ export interface SincronizarContactoResponse {
   creado: boolean;
 }
 
-/**
- * Obtiene el persona_id almacenado localmente en el cliente
- */
 export function getStoredPersonaId(): string | null {
   try {
     return localStorage.getItem(STORAGE_KEY_PERSONA_ID);
@@ -52,9 +40,6 @@ export function getStoredPersonaId(): string | null {
   }
 }
 
-/**
- * Persiste el persona_id asignado en el almacenamiento local
- */
 export function setStoredPersonaId(personaId: string): void {
   try {
     if (personaId) {
@@ -65,27 +50,9 @@ export function setStoredPersonaId(personaId: string): void {
   }
 }
 
-/**
- * Sincroniza un usuario de MejoraApp hacia el motor central de contactos
- * Payload unificado:
- * {
- *   source: "mejora_app",
- *   email: email,
- *   nombre: nombre,
- *   telefono: telefono,
- *   metadata: { app_user_id: userId }
- * }
- */
 export async function sincronizarUsuarioConContactos(
   payload: UserContactPayload
 ): Promise<SincronizarContactoResponse> {
-  const url = CONTACTOS_API_URL;
-  const key = CONTACTOS_API_KEY;
-
-  if (!url || !key) {
-    throw new Error('Configuración de contactos-api incompleta (falta URL o API Key)');
-  }
-
   const existingPersonaId = payload.persona_id || getStoredPersonaId();
 
   const body: Record<string, unknown> = {
@@ -108,39 +75,34 @@ export async function sincronizarUsuarioConContactos(
     body.persona_id = existingPersonaId;
   }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': key,
-      'Authorization': `Bearer ${key}`,
-    },
-    body: JSON.stringify(body),
+  const { data, error } = await supabase.functions.invoke('sync-contactos', {
+    body,
   });
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Error sincronizando usuario (${res.status}): ${errorText}`);
+  if (error) {
+    throw new Error(`Error sincronizando contacto (${error.message})`);
   }
 
-  const data = (await res.json()) as SincronizarContactoResponse;
-  if (data?.persona_id) {
-    setStoredPersonaId(data.persona_id);
+  if (data?.skipped) {
+    throw new Error('Sincronización omitida en gateway');
   }
 
-  return data;
+  const resData = data as SincronizarContactoResponse;
+  if (resData?.persona_id) {
+    setStoredPersonaId(resData.persona_id);
+  }
+
+  return resData;
 }
 
 /**
- * Wrapper de sincronización asíncrona segura (Fail-Soft)
- * No lanza excepciones; registra advertencias en consola y devuelve el persona_id si tuvo éxito.
+ * Versión fail-soft obligatoria: captura cualquier error sin interrumpir la UI
  */
 export async function sincronizarUsuarioBestEffort(
   payload: UserContactPayload
-): Promise<string | null> {
+): Promise<SincronizarContactoResponse | null> {
   try {
-    const res = await sincronizarUsuarioConContactos(payload);
-    return res.persona_id;
+    return await sincronizarUsuarioConContactos(payload);
   } catch (err) {
     console.warn('[contactosService] Sincronización best-effort omitida o fallida:', err);
     return null;

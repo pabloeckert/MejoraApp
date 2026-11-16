@@ -17,6 +17,10 @@ export const moderatePostSchema = z.object({
     .trim()
     .min(1, "El contenido no puede estar vacío.")
     .max(1000, "El contenido no puede superar los 1000 caracteres."),
+  post_type: z
+    .enum(["consulta", "caso", "convocatoria"])
+    .optional()
+    .default("consulta"),
 });
 
 export const moderateCommentSchema = z.object({
@@ -50,6 +54,39 @@ export const tiendupEventSchema = z
       .passthrough(),
   })
   .passthrough();
+
+export const emergencyDispatchSchema = z.object({
+  crisisType: z.string().trim().min(2, "Indicá el tipo de crisis.").max(60),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Describí brevemente el impacto actual (mín. 10 caracteres).")
+    .max(300, "Máximo 300 caracteres."),
+  contactPhone: z
+    .string()
+    .trim()
+    .max(40, "Teléfono inválido.")
+    .optional()
+    .or(z.literal("")),
+});
+
+export const syncContactosSchema = z
+  .object({
+    source: z.string().trim().max(40).optional().default("mejora_app"),
+    email: z.string().trim().email("Email inválido.").optional(),
+    nombre: z.string().trim().max(120).optional(),
+    telefono: z.string().trim().max(40).optional(),
+    cargo: z.string().trim().max(100).optional(),
+    organizacion: z.string().trim().max(120).optional(),
+    persona_id: z.string().trim().max(80).optional(),
+    nota_referencia: z.string().trim().max(250).optional(),
+    metadata: z.record(z.unknown()).optional(),
+  })
+  .passthrough();
+
+export const allianceMatchSchema = z.object({
+  allianceId: z.string().uuid().optional().nullable(),
+});
 
 /** Extracts a human-readable message from the first Zod issue. */
 export function formatZodError(error: ZodError): string {

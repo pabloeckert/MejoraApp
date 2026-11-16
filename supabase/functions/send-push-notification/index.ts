@@ -24,7 +24,7 @@ interface NotificationPayload {
 }
 
 Deno.serve(
-  withMiddleware({ auth: false, rateLimit: 30 }, async (req, _ctx) => {
+  withMiddleware({ auth: true, rateLimit: 30 }, async (req, _ctx) => {
     const headers = { "Content-Type": "application/json" };
 
     if (req.method !== "POST") {

@@ -163,3 +163,14 @@ Para que cualquier feature o pantalla se considere terminada y apta para producc
 - `npm run lint`: 0 errores, 0 warnings.
 - `npm test`: 16 archivos / 288 tests unitarios e integración pasando (100%).
 - `npm run build`: empaquetado de producción exitoso (`vite build`).
+
+---
+
+## 6. CONTINUIDAD ESTRATÉGICA Y MODERNIZACIÓN 2026–2027 (SPRINTS 4 Y 5)
+
+Tras la auditoría integral realizada el **16 de noviembre de 2026** sobre el codebase en producción (`478f907`), se incorporan **dos sprints de cierre productivo y actualización tecnológica** antes del Go-Live masivo. El detalle operativo paso a paso para ejecución autónoma con **Gemini 3.8 (Esfuerzo HIGH)** reside en [`docs/RUNBOOK_EJECUCION_2026_2027.md`](./RUNBOOK_EJECUCION_2026_2027.md).
+
+| Sprint | Alcance Principal | Foco 2026–2027 y Cierre Real |
+| :--- | :--- | :--- |
+| **Sprint 4** | **Estabilización Crítica & Seguridad** | Migración de IA de `gemini-2.0-flash` (apagado) a **`gemini-3.8-flash`** (`thinkingLevel`) y `gemini-3.5-flash-lite`; `verify_jwt = false` en `supabase/config.toml` para webhooks; tabla `mentor_config` + UI en `AdminIA.tsx`; proxy seguro `sync-contactos` (sin keys en bundle cliente); unificación de checkout Tiendup en `UpgradeModal.tsx`; despacho multicanal real `dispatch-emergency` (Resend + Push + WhatsApp); tabla dedicada B2B `alliances` / `alliance_interests`. |
+| **Sprint 5** | **UX/UI 2026–2027, GenUI & CI/CD** | Generative UI interactiva en `MentorMessage.tsx` (calculadora de descuentos, guiones WhatsApp, checklist 72h); acciones agénticas cross-módulo; Lazy-load de tabs (`Index.tsx` < `100 kB`); `View Transitions API`; cola offline de resiliencia; Auth Zero-Friction (Magic Link OTP / Passkeys); matchmaking B2B semántico N2; restauración de `.github/workflows/` (CI + Playwright E2E + Lighthouse CI). |

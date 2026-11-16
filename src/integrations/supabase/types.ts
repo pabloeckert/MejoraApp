@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -11,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -80,6 +105,80 @@ export type Database = {
           added_by?: string | null
           created_at?: string | null
           email?: string
+        }
+        Relationships: []
+      }
+      alliance_interests: {
+        Row: {
+          alliance_id: string
+          created_at: string
+          id: string
+          note: string | null
+          requester_user_id: string
+          status: string
+        }
+        Insert: {
+          alliance_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          requester_user_id: string
+          status?: string
+        }
+        Update: {
+          alliance_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          requester_user_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alliance_interests_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alliances: {
+        Row: {
+          axis: string
+          busca: string | null
+          created_at: string
+          id: string
+          ofrece: string | null
+          region: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          axis: string
+          busca?: string | null
+          created_at?: string
+          id?: string
+          ofrece?: string | null
+          region?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          axis?: string
+          busca?: string | null
+          created_at?: string
+          id?: string
+          ofrece?: string | null
+          region?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -190,6 +289,71 @@ export type Database = {
           time_estimate_min?: number | null
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      challenge_participants: {
+        Row: {
+          challenge_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "community_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_challenges: {
+        Row: {
+          challenge_type: string
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          participant_count: number
+          start_date: string
+          title: string
+        }
+        Insert: {
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean
+          participant_count?: number
+          start_date: string
+          title: string
+        }
+        Update: {
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          participant_count?: number
+          start_date?: string
+          title?: string
         }
         Relationships: []
       }
@@ -349,26 +513,41 @@ export type Database = {
       }
       emergencies: {
         Row: {
+          contact_phone: string | null
           created_at: string
+          crisis_type: string | null
+          email_sent: boolean
           id: string
           message: string | null
+          push_sent: boolean
           sent_at: string | null
+          status: string
           user_id: string
           whatsapp_sent: boolean | null
         }
         Insert: {
+          contact_phone?: string | null
           created_at?: string
+          crisis_type?: string | null
+          email_sent?: boolean
           id?: string
           message?: string | null
+          push_sent?: boolean
           sent_at?: string | null
+          status?: string
           user_id: string
           whatsapp_sent?: boolean | null
         }
         Update: {
+          contact_phone?: string | null
           created_at?: string
+          crisis_type?: string | null
+          email_sent?: boolean
           id?: string
           message?: string | null
+          push_sent?: boolean
           sent_at?: string | null
+          status?: string
           user_id?: string
           whatsapp_sent?: boolean | null
         }
@@ -457,6 +636,30 @@ export type Database = {
         }
         Relationships: []
       }
+      mentor_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       mentor_conversations: {
         Row: {
           created_at: string | null
@@ -486,24 +689,33 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string | null
+          helpful: boolean | null
           id: string
+          model_used: string | null
           role: string
+          tokens_used: number | null
           user_id: string
         }
         Insert: {
           content: string
           conversation_id: string
           created_at?: string | null
+          helpful?: boolean | null
           id?: string
+          model_used?: string | null
           role: string
+          tokens_used?: number | null
           user_id: string
         }
         Update: {
           content?: string
           conversation_id?: string
           created_at?: string | null
+          helpful?: boolean | null
           id?: string
+          model_used?: string | null
           role?: string
+          tokens_used?: number | null
           user_id?: string
         }
         Relationships: [
@@ -938,6 +1150,38 @@ export type Database = {
           },
         ]
       }
+      wall_poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_index: number
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_index: number
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_index?: number
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wall_poll_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wall_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wall_posts: {
         Row: {
           comments_count: number
@@ -945,6 +1189,7 @@ export type Database = {
           created_at: string
           id: string
           likes_count: number
+          poll_options: Json | null
           post_type: Database["public"]["Enums"]["post_type"]
           status: string
           user_id: string
@@ -955,6 +1200,7 @@ export type Database = {
           created_at?: string
           id?: string
           likes_count?: number
+          poll_options?: Json | null
           post_type?: Database["public"]["Enums"]["post_type"]
           status?: string
           user_id: string
@@ -965,6 +1211,7 @@ export type Database = {
           created_at?: string
           id?: string
           likes_count?: number
+          poll_options?: Json | null
           post_type?: Database["public"]["Enums"]["post_type"]
           status?: string
           user_id?: string
@@ -975,14 +1222,15 @@ export type Database = {
     Views: {
       community_ranking: {
         Row: {
-          activity_score: number | null
-          badge_count: number | null
+          avatar_url: string | null
           comment_count: number | null
           display_name: string | null
           empresa: string | null
+          id: string | null
           post_count: number | null
-          total_likes_received: number | null
-          user_id: string | null
+          score: number | null
+          sector: string | null
+          total_likes: number | null
         }
         Relationships: []
       }
@@ -1013,6 +1261,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
+      is_n2_or_admin: { Args: { uid: string }; Returns: boolean }
     }
     Enums: {
       access_level: "N0" | "N1" | "N2" | "ADMIN"
@@ -1058,12 +1307,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1087,11 +1336,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1112,11 +1361,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1137,11 +1386,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1154,11 +1403,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1168,6 +1417,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       access_level: ["N0", "N1", "N2", "ADMIN"],

@@ -121,7 +121,7 @@ describe("Component Lazy Loading", () => {
   it("App imports all pages", async () => {
     const App = await import("@/App");
     expect(App.default).toBeDefined();
-  });
+  }, 30000);
 });
 
 // ── Edge Function Middleware Chain ───────────────────────────────

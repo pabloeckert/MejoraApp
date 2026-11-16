@@ -1,1 +1,7 @@
 project_id = "pwiduojwgkaoxxuautkp"
+
+[functions.tiendup-webhook]
+verify_jwt = false
+
+[functions.send-onboarding-email]
+verify_jwt = false

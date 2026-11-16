@@ -96,6 +96,7 @@ export const MentorChat = ({
         {messages.map((msg, i) => (
           <MentorMessage
             key={msg.id}
+            id={msg.id}
             role={msg.role}
             content={msg.content}
             modelUsed={msg.model_used}
