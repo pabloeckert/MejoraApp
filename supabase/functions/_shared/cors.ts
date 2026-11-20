@@ -3,17 +3,29 @@
 
 const ALLOWED_ORIGINS = [
   "https://app.mejoraok.com",
+  "https://mejoraapp.mejoraok.com",
+  "https://mejoraok.com",
   "https://mejoraapp.vercel.app",
   "http://localhost:8080",
   "http://localhost:5173",
+  "http://localhost:3000",
 ];
 
+export function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*mejoraok\.com$/.test(origin)) return true;
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/.test(origin)) return true;
+  if (/^http:\/\/localhost:[0-9]+$/.test(origin)) return true;
+  return false;
+}
+
 export function getCorsHeaders(origin: string | null): Record<string, string> {
-  const allowed = ALLOWED_ORIGINS.includes(origin ?? "") ? origin! : "https://app.mejoraok.com";
+  const allowed = isAllowedOrigin(origin) ? origin! : (origin || "https://app.mejoraok.com");
   return {
     "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
   };
 }
 

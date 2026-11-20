@@ -10,10 +10,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BANCO_PREGUNTAS,
+  PREGUNTA_POSICION,
   PERFILES,
   shuffle,
+  calcularScores,
+  requierePosicion,
   detectarPerfil,
   type DiagnosticQuestion,
+  type RespuestaPosicion,
+  type PerfilKey,
 } from "@/data/diagnosticData";
 import {
   trackStartDiagnostic,
@@ -62,6 +67,7 @@ const DiagnosticTest = ({
     return saved?.answers ?? {};
   });
 
+  const [posicion, setPosicion] = useState<RespuestaPosicion | undefined>();
   const [history, setHistory] = useState<DiagnosticHistoryEntry[]>([]);
 
   // Load diagnostic history
@@ -107,13 +113,19 @@ const DiagnosticTest = ({
 
   const selectOption = useCallback((questionId: number, score: number) => {
     setAnswers((prev) => ({ ...prev, [questionId]: score }));
+    if (questionId === 9) {
+      const opt = PREGUNTA_POSICION.opts.find((o) => o.score === score);
+      if (opt?.valor) {
+        setPosicion(opt.valor);
+      }
+    }
   }, []);
 
   const showResult = useCallback(async () => {
     setStep("loading");
     clearProgress();
 
-    const perfil = detectarPerfil(answers);
+    const perfil = detectarPerfil(answers, posicion);
     const puntajeTotal = Object.values(answers).reduce((a, b) => a + b, 0);
 
     if (user) {
@@ -138,12 +150,22 @@ const DiagnosticTest = ({
     }
     trackCompleteDiagnostic(puntajeTotal, perfil);
     setTimeout(() => setStep("result"), 2200);
-  }, [answers, user]);
+  }, [answers, posicion, user]);
 
   const goNext = useCallback(() => {
-    if (currentIdx < 7) setCurrentIdx((i) => i + 1);
-    else showResult();
-  }, [currentIdx, showResult]);
+    if (currentIdx < 7) {
+      setCurrentIdx((i) => i + 1);
+    } else if (currentIdx === 7) {
+      const currentScores = calcularScores(answers);
+      if (requierePosicion(currentScores) && !posicion) {
+        setCurrentIdx(8);
+      } else {
+        showResult();
+      }
+    } else {
+      showResult();
+    }
+  }, [currentIdx, answers, posicion, showResult]);
 
   const goBack = useCallback(() => {
     if (currentIdx > 0) setCurrentIdx((i) => i - 1);
@@ -151,10 +173,11 @@ const DiagnosticTest = ({
   }, [currentIdx]);
 
   // Computed values
-  const currentQuestion = shuffledQuestions[currentIdx];
-  const perfil = step === "result" ? detectarPerfil(answers) : null;
+  const currentQuestion: DiagnosticQuestion | undefined =
+    currentIdx === 8 ? (PREGUNTA_POSICION as unknown as DiagnosticQuestion) : shuffledQuestions[currentIdx];
+  const perfil = step === "result" ? detectarPerfil(answers, posicion) : null;
   const perfilData = perfil ? PERFILES[perfil] : null;
-  const progress = step === "question" ? Math.round(((currentIdx + 1) / 8) * 100) : 0;
+  const progress = step === "question" ? Math.min(100, Math.round(((currentIdx + 1) / 8) * 100)) : 0;
   const puntaje = Object.values(answers).reduce((a, b) => a + b, 0);
 
   // Render based on current step
@@ -187,6 +210,7 @@ const DiagnosticTest = ({
           perfilData={perfilData}
           puntaje={puntaje}
           answers={answers}
+          posicion={posicion}
           onComplete={onComplete}
           userName={user?.email?.split("@")[0]}
         />

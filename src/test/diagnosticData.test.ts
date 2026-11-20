@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { shuffle, detectarPerfil, PERFILES, BANCO_PREGUNTAS } from "../data/diagnosticData";
+import {
+  shuffle,
+  detectarPerfil,
+  calcularScores,
+  requierePosicion,
+  PERFILES,
+  BANCO_PREGUNTAS,
+  type PerfilKey,
+} from "../data/diagnosticData";
 
 describe("shuffle", () => {
   it("should return same elements", () => {
@@ -24,7 +32,7 @@ describe("shuffle", () => {
   });
 });
 
-describe("detectarPerfil", () => {
+describe("detectarPerfil y Scoring 4D canónico", () => {
   it("should return a valid profile key", () => {
     const validKeys = Object.keys(PERFILES);
     const answer = { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3, 8: 3 };
@@ -32,39 +40,56 @@ describe("detectarPerfil", () => {
     expect(validKeys).toContain(result);
   });
 
-  it("should detect SATURADO when v1 and v5 are low", () => {
-    // No depende de mí + problemas se repiten
-    const answer = { 1: 1, 2: 5, 3: 5, 4: 5, 5: 1, 6: 5, 7: 5, 8: 5 };
-    const result = detectarPerfil(answer);
-    expect(result).toBe("SATURADO");
+  it("detecta ESCEPTICO cuando puntajes son altos y parejos", () => {
+    const scores = { personal: 82, organizacional: 80, comercial: 78, empresarial: 85 };
+    expect(requierePosicion(scores)).toBe(false);
+    expect(detectarPerfil(scores)).toBe("ESCEPTICO");
   });
 
-  it("should detect EQUIPO_DESALINEADO when v4 is low but operations are OK", () => {
-    const answer = { 1: 4, 2: 4, 3: 4, 4: 1, 5: 4, 6: 4, 7: 4, 8: 3 };
-    const result = detectarPerfil(answer);
-    expect(result).toBe("EQUIPO_DESALINEADO");
+  it("detecta SIN_PROFESIONALIZAR_LA_EMPRESA cuando puntajes son bajos y parejos", () => {
+    const scores = { personal: 32, organizacional: 35, comercial: 30, empresarial: 34 };
+    expect(requierePosicion(scores)).toBe(false);
+    expect(detectarPerfil(scores)).toBe("SIN_PROFESIONALIZAR_LA_EMPRESA");
   });
 
-  it("should detect VENDEDOR_SIN_RESULTADOS when v2, v3, v8 are low", () => {
-    const answer = { 1: 5, 2: 1, 3: 1, 4: 5, 5: 5, 6: 5, 7: 5, 8: 1 };
-    const result = detectarPerfil(answer);
-    expect(result).toBe("VENDEDOR_SIN_RESULTADOS");
+  it("detecta SATURADO cuando empresarial y personal son las más débiles", () => {
+    const scores = { personal: 20, organizacional: 60, comercial: 60, empresarial: 15 };
+    expect(detectarPerfil(scores)).toBe("SATURADO");
   });
 
-  it("should detect DESCONECTADO when v1 is high, v7 and v6 are low", () => {
-    const answer = { 1: 5, 2: 4, 3: 4, 4: 4, 5: 4, 6: 1, 7: 1, 8: 3 };
-    const result = detectarPerfil(answer);
-    expect(result).toBe("DESCONECTADO");
+  it("detecta EQUIPO_DESALINEADO cuando organizacional y personal son las más débiles", () => {
+    const scores = { personal: 25, organizacional: 18, comercial: 70, empresarial: 70 };
+    expect(detectarPerfil(scores)).toBe("EQUIPO_DESALINEADO");
   });
 
-  it("should detect LIDER_SOLO when v7 is high, v1 and v4 are low", () => {
-    const answer = { 1: 2, 2: 4, 3: 4, 4: 1, 5: 4, 6: 3, 7: 5, 8: 3 };
-    const result = detectarPerfil(answer);
-    expect(result).toBe("LIDER_SOLO");
+  it("detecta AREA_COMERCIAL_SIN_RESULTADOS cuando comercial es la dominante más débil", () => {
+    const scores = { personal: 60, organizacional: 60, comercial: 15, empresarial: 50 };
+    expect(detectarPerfil(scores)).toBe("AREA_COMERCIAL_SIN_RESULTADOS");
   });
 
-  it("should handle missing answers by defaulting to neutral (3)", () => {
-    // Only answer questions 1 and 2
+  it("requiere pregunta de posición en pares ambiguos y desempata LIDER_QUE_NECESITA_APOYO vs NUEVA_GENERACION", () => {
+    const scores = { personal: 25, organizacional: 35, comercial: 75, empresarial: 70 };
+    expect(requierePosicion(scores)).toBe(true);
+    expect(detectarPerfil(scores, "fundador")).toBe("LIDER_QUE_NECESITA_APOYO");
+    expect(detectarPerfil(scores, "heredero")).toBe("NUEVA_GENERACION");
+    expect(detectarPerfil(scores, "gerente")).toBe("NUEVA_GENERACION");
+  });
+
+  it("desempata AREA_COMERCIAL_SIN_RESULTADOS vs INDEPENDIENTE_EN_CRECIMIENTO según posición", () => {
+    const scores = { personal: 25, organizacional: 70, comercial: 30, empresarial: 70 };
+    expect(requierePosicion(scores)).toBe(true);
+    expect(detectarPerfil(scores, "fundador")).toBe("AREA_COMERCIAL_SIN_RESULTADOS");
+    expect(detectarPerfil(scores, "gerente")).toBe("INDEPENDIENTE_EN_CRECIMIENTO");
+  });
+
+  it("calcula scores normalizados 25..100 para respuestas mínimas y máximas", () => {
+    const min = calcularScores([1, 1, 1, 1, 1, 1, 1, 1]);
+    const max = calcularScores([4, 4, 4, 4, 4, 4, 4, 4]);
+    expect(min).toEqual({ personal: 25, organizacional: 25, comercial: 25, empresarial: 25 });
+    expect(max).toEqual({ personal: 100, organizacional: 100, comercial: 100, empresarial: 100 });
+  });
+
+  it("should handle missing answers by defaulting to neutral (2)", () => {
     const answer = { 1: 1, 2: 1 };
     const result = detectarPerfil(answer);
     expect(Object.keys(PERFILES)).toContain(result);
@@ -77,12 +102,24 @@ describe("detectarPerfil", () => {
 });
 
 describe("PERFILES", () => {
-  it("should have all 8 profiles", () => {
-    expect(Object.keys(PERFILES)).toHaveLength(8);
+  it("should contain the 8 canonical profiles", () => {
+    const canonical8: PerfilKey[] = [
+      "SATURADO",
+      "LIDER_QUE_NECESITA_APOYO",
+      "INDEPENDIENTE_EN_CRECIMIENTO",
+      "EQUIPO_DESALINEADO",
+      "ESCEPTICO",
+      "NUEVA_GENERACION",
+      "AREA_COMERCIAL_SIN_RESULTADOS",
+      "SIN_PROFESIONALIZAR_LA_EMPRESA",
+    ];
+    for (const key of canonical8) {
+      expect(PERFILES[key]).toBeDefined();
+    }
   });
 
-  it("each profile should have required fields", () => {
-    for (const [key, profile] of Object.entries(PERFILES)) {
+  it("each canonical profile should have required fields", () => {
+    for (const [, profile] of Object.entries(PERFILES)) {
       expect(profile.color).toBeTruthy();
       expect(profile.tagline).toBeTruthy();
       expect(profile.desc).toBeTruthy();
@@ -105,10 +142,10 @@ describe("BANCO_PREGUNTAS", () => {
     }
   });
 
-  it("each question should have scores 1, 2, 3, 5", () => {
+  it("each question should have scores 1, 2, 3, 4", () => {
     for (const q of BANCO_PREGUNTAS) {
       const scores = q.opts.map((o) => o.score).sort();
-      expect(scores).toEqual([1, 2, 3, 5]);
+      expect(scores).toEqual([1, 2, 3, 4]);
     }
   });
 

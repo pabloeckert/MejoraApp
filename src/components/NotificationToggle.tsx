@@ -62,11 +62,14 @@ const NotificationToggle = ({ variant = "button" }: NotificationToggleProps) => 
 
         await subscribe(user.id);
         setSubscribed(true);
-        toast({ title: "🔔 Notificaciones activadas", description: "Te avisamos cuando haya novedades." });
+        toast({
+          title: "🔔 Notificaciones activadas",
+          description: "Te avisaremos cuando otros líderes respondan a tus consultas en el Muro o haya avisos estratégicos.",
+        });
       }
     } catch (err) {
       console.error("[Push] Toggle error:", err);
-      toast({ title: "Error", description: "No se pudo cambiar la configuración.", variant: "destructive" });
+      toast({ title: "Error", description: "No se pudo cambiar la configuración de notificaciones.", variant: "destructive" });
     }
 
     setToggling(false);
@@ -82,7 +85,8 @@ const NotificationToggle = ({ variant = "button" }: NotificationToggleProps) => 
         className="h-8 w-8"
         onClick={handleToggle}
         disabled={toggling}
-        title={subscribed ? "Desactivar notificaciones" : "Activar notificaciones"}
+        aria-label={subscribed ? "Desactivar avisos del Muro" : "Activar avisos de respuestas del Muro"}
+        title={subscribed ? "Notificaciones activadas (Avisos del Muro)" : "Activar notificaciones de respuestas del Muro"}
       >
         {toggling ? (
           <Loader2 className="w-4 h-4 animate-spin" />

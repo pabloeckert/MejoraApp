@@ -9,6 +9,7 @@ import UserProfile from "@/components/UserProfile";
 import { MembershipBadge } from "@/components/MembershipBadge";
 import { trackProfileViewed } from "@/lib/analytics";
 import logoComunidad from "@/assets/logo-comunidad.png";
+import logoBlanco from "@/assets/logo-blanco.png";
 
 const AppHeader = () => {
   const { signOut, user } = useAuth();
@@ -41,7 +42,10 @@ const AppHeader = () => {
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-border">
       <div className="flex items-center justify-between px-4 h-14 max-w-lg mx-auto">
-        <img src={logoComunidad} alt="Mejora Continua - Comunidad de Negocios" className="h-8 object-contain" />
+        <div className="flex items-center">
+          <img src={logoComunidad} alt="Mejora Continua - Comunidad de Negocios" className="h-8 object-contain dark:hidden" />
+          <img src={logoBlanco} alt="Mejora Continua - Comunidad de Negocios" className="h-8 object-contain hidden dark:block" />
+        </div>
         <div className="flex items-center gap-1">
           <MembershipBadge onClick={() => setShowProfile(true)} />
           {showAdminReturn && (

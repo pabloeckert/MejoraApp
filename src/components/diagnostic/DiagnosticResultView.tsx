@@ -9,7 +9,15 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useContentRecommendations } from "@/hooks/useContentRecommendations";
 import { FeatureGate } from "@/components/FeatureGate";
-import { WA_NUMBER, calcularScores, NOMBRES_AREA, type Area } from "@/data/diagnosticData";
+import {
+  WA_NUMBER,
+  calcularScores,
+  NOMBRES_AREA,
+  generarPlanAccion72h,
+  type Area,
+  type RespuestaPosicion,
+  type PerfilKey,
+} from "@/data/diagnosticData";
 import { AreaBar } from "@/components/diagnostic/AreaBar";
 import { GaugeGlobal } from "@/components/diagnostic/GaugeGlobal";
 import {
@@ -39,6 +47,7 @@ interface DiagnosticResultViewProps {
   perfilData: PerfilData;
   puntaje: number;
   answers?: Record<number, number>;
+  posicion?: RespuestaPosicion;
   onComplete: () => void;
   userName?: string;
 }
@@ -48,6 +57,7 @@ export const DiagnosticResultView = ({
   perfilData,
   puntaje,
   answers = {},
+  posicion,
   onComplete,
   userName,
 }: DiagnosticResultViewProps) => {
@@ -55,6 +65,18 @@ export const DiagnosticResultView = ({
   const { toast } = useToast();
 
   const scores = useMemo(() => calcularScores(answers), [answers]);
+  const plan72h = useMemo(() => {
+    if (!scores) return null;
+    try {
+      return generarPlanAccion72h({
+        perfil: perfil as PerfilKey,
+        scores,
+        posicion,
+      });
+    } catch {
+      return null;
+    }
+  }, [perfil, scores, posicion]);
   const areaList = useMemo(() => {
     if (!scores) return [];
     return (Object.keys(scores) as Area[]).map((area) => ({
@@ -145,6 +167,51 @@ export const DiagnosticResultView = ({
           ))}
         </div>
       </div>
+
+      {/* Plan Accionable Primeras 72 Horas */}
+      {plan72h && (
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <span className="text-[11px] font-black uppercase tracking-widest text-[#1A3D84] dark:text-blue-400">
+                Plan de Acción Inmediato · 72 Horas
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Foco en resolver la traba estructural prioritaria
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              className="text-xs font-bold gap-1.5 h-8 border-border"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>PDF</span>
+            </Button>
+          </div>
+          <p className="text-sm text-foreground leading-relaxed font-medium">
+            {plan72h.lecturaOrigen}
+          </p>
+          <p className="text-xs text-muted-foreground italic border-l-2 border-[#1A3D84] pl-3 py-1 bg-secondary/30 rounded-r-lg">
+            {plan72h.enfoqueRol}
+          </p>
+          <div className="space-y-3 pt-1">
+            {plan72h.pasos.map((paso, idx) => (
+              <div
+                key={idx}
+                className="bg-secondary/40 rounded-xl p-3.5 border border-border/70 space-y-1.5"
+              >
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#1A3D84] dark:text-blue-400">
+                  {paso.dia}
+                </span>
+                <h4 className="text-sm font-bold text-foreground">{paso.titulo}</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{paso.accion}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <h3 className="text-caption font-bold tracking-widest text-muted-foreground uppercase mb-3">

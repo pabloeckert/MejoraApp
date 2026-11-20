@@ -63,3 +63,8 @@ test-results/
 coverage/
 
 .vercel
+
+# System & Cloud junk
+desktop.ini
+Desktop.ini
+.tmp.driveupload

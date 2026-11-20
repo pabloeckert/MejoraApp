@@ -16,7 +16,7 @@ const tabs: { id: string; label: string; icon: typeof Home; accent?: boolean; mi
   { id: "perfil",     label: "Perfil",   icon: UserCircle },
 ];
 
-const BottomNav = ({ activeTab, onTabChange, badges, hasDiagnostic }: BottomNavProps) => {
+const BottomNav = ({ activeTab, onTabChange, badges }: BottomNavProps) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border" role="navigation" aria-label="Navegación principal">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
@@ -24,13 +24,12 @@ const BottomNav = ({ activeTab, onTabChange, badges, hasDiagnostic }: BottomNavP
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           const hasNew = badges?.[tab.id] ?? false;
-          const showMirrorCta = tab.mirror && !hasDiagnostic && !isActive;
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               aria-current={isActive ? "page" : undefined}
-              aria-label={`${tab.label}${hasNew ? " (nuevo contenido)" : ""}${showMirrorCta ? " — ¡Hacé tu diagnóstico!" : ""}`}
+              aria-label={`${tab.label}${hasNew ? " (nuevo contenido)" : ""}`}
               className={cn(
                 "relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all",
                 tab.mirror ? "min-w-[64px]" : "min-w-[60px]",
@@ -53,9 +52,6 @@ const BottomNav = ({ activeTab, onTabChange, badges, hasDiagnostic }: BottomNavP
                   )}
                 >
                   <Icon className="w-5 h-5 text-white stroke-[2px]" />
-                  {showMirrorCta && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-rojo rounded-full border-2 border-card animate-pulse" />
-                  )}
                 </div>
               ) : (
                 <div className="relative">

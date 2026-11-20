@@ -21,11 +21,11 @@ describe("Diagnostic System — Deep Tests", () => {
       expect(Object.keys(PERFILES)).toContain(result);
     });
 
-    it("should handle all min scores (8 pts) → SATURADO", () => {
+    it("should handle all min scores (8 pts) → SIN_PROFESIONALIZAR_LA_EMPRESA", () => {
       const answers: Record<number, number> = {};
       for (let i = 1; i <= 8; i++) answers[i] = 1;
       const result = detectarPerfil(answers);
-      expect(result).toBe("SATURADO");
+      expect(result).toBe("SIN_PROFESIONALIZAR_LA_EMPRESA");
     });
 
     it("should handle all neutral scores (24 pts)", () => {

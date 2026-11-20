@@ -12,6 +12,7 @@ import GoogleButton from "@/components/auth/GoogleButton";
 import AdminLoginForm from "@/components/auth/AdminLoginForm";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import logoComunidad from "@/assets/logo-comunidad.png";
+import logoBlanco from "@/assets/logo-blanco.png";
 
 type AuthMode = "login" | "signup" | "admin";
 
@@ -48,27 +49,18 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <SEOHead {...SEO_CONFIGS.auth} />
       <div className="w-full max-w-sm space-y-5">
-        {/* Logo + title + admin dot below */}
+        {/* Logo */}
         <div className="flex flex-col items-center gap-3">
           <img
             src={logoComunidad}
             alt="Mejora Continua - Comunidad de Negocios"
-            className="h-14 object-contain"
+            className="h-14 object-contain dark:hidden"
           />
-          {/* Admin access toggle — visible but discreet */}
-          <button
-            onClick={() => setMode(mode === "admin" ? "login" : "admin")}
-            aria-label="Acceso administrador"
-            title="Acceso administrador"
-            className={`flex items-center gap-1.5 text-caption font-medium transition-all duration-200 px-2 py-0.5 rounded-full
-              ${mode === "admin"
-                ? "bg-primary/10 text-primary"
-                : "text-foreground/70 hover:text-foreground hover:bg-muted"
-              }`}
-          >
-            <Shield className="w-2.5 h-2.5" />
-            {mode === "admin" ? "Modo admin" : "Admin"}
-          </button>
+          <img
+            src={logoBlanco}
+            alt="Mejora Continua - Comunidad de Negocios"
+            className="h-14 object-contain hidden dark:block"
+          />
         </div>
 
         <Card className="border-0 shadow-lg">
@@ -82,6 +74,32 @@ const Auth = () => {
             ) : (
               /* Normal user flow */
               <>
+                {/* Segmented Switcher for Login / Signup */}
+                <div className="flex rounded-xl bg-muted p-1 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setMode("login")}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                      mode === "login"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Iniciar Sesión
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                      mode === "signup"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Crear Cuenta
+                  </button>
+                </div>
+
                 <GoogleButton onClick={handleGoogleLogin} disabled={googleLoading} />
 
                 <div className="relative my-5">
@@ -89,7 +107,7 @@ const Auth = () => {
                     <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">o con email</span>
+                    <span className="bg-card px-2 text-muted-foreground font-semibold">o con email</span>
                   </div>
                 </div>
 
@@ -102,6 +120,19 @@ const Auth = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Discreet admin link in footer */}
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={() => setMode(mode === "admin" ? "login" : "admin")}
+            aria-label="Acceso directivo"
+            title="Acceso directivo"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors py-1 px-2 rounded-md"
+          >
+            <Shield className="w-3 h-3" />
+            <span>{mode === "admin" ? "Volver al acceso de miembros" : "Acceso directivo"}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

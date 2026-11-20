@@ -88,19 +88,30 @@ const getTypeBadge = (type: string) => {
 
 // --- Video embed ---
 const VideoEmbed = ({ url }: { url: string }) => {
-  // Convert YouTube watch URLs to embed
-  const embedUrl = url
-    .replace("watch?v=", "embed/")
-    .replace("youtu.be/", "youtube.com/embed/");
+  let embedUrl = url;
+  try {
+    if (url.includes("youtu.be/")) {
+      const id = url.split("youtu.be/")[1]?.split("?")[0]?.split("&")[0];
+      embedUrl = `https://www.youtube-nocookie.com/embed/${id}`;
+    } else if (url.includes("watch?v=")) {
+      const id = url.split("watch?v=")[1]?.split("&")[0];
+      embedUrl = `https://www.youtube-nocookie.com/embed/${id}`;
+    } else if (url.includes("youtube.com/embed/")) {
+      embedUrl = url.replace("youtube.com/embed/", "youtube-nocookie.com/embed/");
+    }
+  } catch {
+    embedUrl = url;
+  }
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden bg-black" style={{ paddingBottom: "56.25%" }}>
+    <div className="relative w-full rounded-xl overflow-hidden bg-black shadow-md border border-border" style={{ paddingBottom: "56.25%" }}>
       <iframe
         src={embedUrl}
-        className="absolute top-0 left-0 w-full h-full"
+        className="absolute top-0 left-0 w-full h-full border-0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
-        title="Video"
+        title="Video formativo"
+        loading="lazy"
       />
     </div>
   );
@@ -350,9 +361,9 @@ const ContenidoDeValor = () => {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="space-y-1">
-        <h1 className="text-xl font-bold text-foreground">Contenido de Valor</h1>
+        <h1 className="text-xl font-bold text-foreground">Herramientas de Gestión</h1>
         <p className="text-sm text-muted-foreground">
-          Tips, estrategias y reflexiones para tu negocio.
+          Metodologías prácticas, videos y frameworks para liderar tu negocio.
         </p>
       </div>
 

@@ -114,45 +114,51 @@ async function callGemini(
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) return null;
 
-  const model = opts.profile === "fast" ? GEMINI_FAST_MODEL : GEMINI_REASONING_MODEL;
+  const candidateModels = opts.profile === "fast"
+    ? [GEMINI_FAST_MODEL, "gemini-flash-latest", "gemini-2.5-flash-lite"]
+    : [GEMINI_REASONING_MODEL, "gemini-flash-latest", "gemini-2.5-flash-lite"];
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": key,
-        },
-        body: JSON.stringify(
-          buildGeminiBody(messages, {
-            model,
-            thinkingLevel: opts.thinkingLevel,
-            temperature: opts.temperature,
-            maxTokens: opts.maxTokens,
-            responseMimeType: opts.responseMimeType,
-          })
-        ),
+  for (const model of candidateModels) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key,
+          },
+          body: JSON.stringify(
+            buildGeminiBody(messages, {
+              model,
+              thinkingLevel: opts.thinkingLevel,
+              temperature: opts.temperature,
+              maxTokens: opts.maxTokens,
+              responseMimeType: opts.responseMimeType,
+            })
+          ),
+        }
+      );
+
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => "");
+        logWarn(opts.logTag, `Gemini ${model} HTTP ${res.status}`, { error: errBody.slice(0, 160) });
+        continue; // try next candidate model
       }
-    );
 
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      logWarn(opts.logTag, `Gemini ${model} HTTP ${res.status}`, { error: errBody.slice(0, 240) });
-      return null;
+      const data = await res.json();
+      const parts = data.candidates?.[0]?.content?.parts;
+      const text = extractGeminiPartsText(parts);
+      const tokens = data.usageMetadata?.totalTokenCount ?? 0;
+
+      if (text) {
+        return { content: text, model, tokensUsed: tokens };
+      }
+    } catch (e) {
+      logWarn(opts.logTag, `Gemini ${model} failed`, { error: String(e) });
     }
-
-    const data = await res.json();
-    const parts = data.candidates?.[0]?.content?.parts;
-    const text = extractGeminiPartsText(parts);
-    const tokens = data.usageMetadata?.totalTokenCount ?? 0;
-
-    return text ? { content: text, model, tokensUsed: tokens } : null;
-  } catch (e) {
-    logWarn(opts.logTag, `Gemini ${model} failed`, { error: String(e) });
-    return null;
   }
+  return null;
 }
 
 async function callOpenAICompatible(
@@ -239,74 +245,83 @@ async function streamGemini(
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) return null;
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_REASONING_MODEL}:streamGenerateContent?alt=sse`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": key,
-        },
-        body: JSON.stringify(
-          buildGeminiBody(messages, {
-            model: GEMINI_REASONING_MODEL,
-            thinkingLevel: opts.thinkingLevel,
-            temperature: opts.temperature,
-            maxTokens: opts.maxTokens,
-          })
-        ),
+  const candidateModels = [
+    GEMINI_REASONING_MODEL,
+    "gemini-flash-latest",
+    "gemini-2.5-flash-lite",
+  ];
+
+  for (const model of candidateModels) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key,
+          },
+          body: JSON.stringify(
+            buildGeminiBody(messages, {
+              model,
+              thinkingLevel: opts.thinkingLevel,
+              temperature: opts.temperature,
+              maxTokens: opts.maxTokens,
+            })
+          ),
+        }
+      );
+
+      if (!res.ok || !res.body) {
+        logWarn(opts.logTag, `Gemini stream ${model} HTTP ${res.status}`);
+        continue; // try next candidate model
       }
-    );
 
-    if (!res.ok || !res.body) {
-      logWarn(opts.logTag, `Gemini stream HTTP ${res.status}`);
-      return null;
-    }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let buffer = "";
+      let totalTokens = 0;
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = "";
-    let buffer = "";
-    let totalTokens = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
+          const data = trimmed.slice(6);
+          if (!data || data === "[DONE]") continue;
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (!data || data === "[DONE]") continue;
-
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.usageMetadata?.totalTokenCount) {
-            totalTokens = parsed.usageMetadata.totalTokenCount;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.usageMetadata?.totalTokenCount) {
+              totalTokens = parsed.usageMetadata.totalTokenCount;
+            }
+            const chunk = extractGeminiPartsText(parsed.candidates?.[0]?.content?.parts);
+            if (chunk) {
+              fullText += chunk;
+              await onChunk(chunk);
+            }
+          } catch {
+            // skip malformed SSE frame
           }
-          const chunk = extractGeminiPartsText(parsed.candidates?.[0]?.content?.parts);
-          if (chunk) {
-            fullText += chunk;
-            await onChunk(chunk);
-          }
-        } catch {
-          // skip malformed SSE frame
         }
       }
-    }
 
-    return fullText
-      ? { content: fullText, model: GEMINI_REASONING_MODEL, tokensUsed: totalTokens }
-      : null;
-  } catch (e) {
-    logWarn(opts.logTag, "Gemini stream failed", { error: String(e) });
-    return null;
+      if (fullText) {
+        return { content: fullText, model, tokensUsed: totalTokens };
+      }
+    } catch (e) {
+      logWarn(opts.logTag, `Gemini stream ${model} failed`, { error: String(e) });
+    }
   }
+
+  return null;
 }
 
 async function streamOpenAICompatible(

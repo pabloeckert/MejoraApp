@@ -180,7 +180,6 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         badges={badges}
-        hasDiagnostic={!!sessionStorage.getItem("mc-diagnostic-done")}
       />
 
       {/* Profile completion modal — al completar, va al Mirror */}

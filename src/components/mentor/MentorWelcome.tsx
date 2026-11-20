@@ -5,6 +5,7 @@
  * Adapts to user context (has diagnostic? 4D bottleneck? profile?)
  */
 
+import { useState } from "react";
 import {
   Bot,
   Lightbulb,
@@ -13,6 +14,7 @@ import {
   Handshake,
   ArrowRight,
   ShieldCheck,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -81,7 +83,15 @@ export const MentorWelcome = ({
   diagnosticSummary,
   onQuickAction,
 }: MentorWelcomeProps) => {
+  const [customQuestion, setCustomQuestion] = useState("");
   const greeting = userName ? `Hola, ${userName}.` : "Hola.";
+
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = customQuestion.trim();
+    if (!q) return;
+    onQuickAction(q);
+  };
 
   const perfilInfo = diagnosticSummary ? PERFILES[diagnosticSummary.perfil] : undefined;
   const totalPct = diagnosticSummary
@@ -167,10 +177,33 @@ export const MentorWelcome = ({
         </div>
       )}
 
+      {/* Free question input box */}
+      <form onSubmit={handleCustomSubmit} className="w-full bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3">
+        <label htmlFor="mentor-free-question" className="text-[11px] font-extrabold uppercase tracking-widest text-[#1A3D84] dark:text-blue-400 block">
+          Pregunta Libre al Mentor
+        </label>
+        <textarea
+          id="mentor-free-question"
+          rows={3}
+          value={customQuestion}
+          onChange={(e) => setCustomQuestion(e.target.value)}
+          placeholder="Escribí tu consulta ejecutiva (ej: 'Cómo delegar la entrega de presupuestos', 'Tengo fricción con mi socio por los retiros', 'Quiero ordenar mi área comercial')..."
+          className="w-full resize-none rounded-xl border border-border bg-background p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1A3D84]"
+        />
+        <Button
+          type="submit"
+          disabled={!customQuestion.trim()}
+          className="w-full h-11 rounded-xl bg-[#1A3D84] hover:bg-[#1A3D84]/90 text-white font-bold text-xs gap-2"
+        >
+          <span>Consultar al Mentor</span>
+          <Send className="w-3.5 h-3.5" />
+        </Button>
+      </form>
+
       {/* Quick Actions */}
       <div className="w-full space-y-2.5">
         <p className="text-[11px] text-muted-foreground font-extrabold uppercase tracking-widest text-center">
-          Consultas tácticas frecuentes
+          O elegí una consulta frecuente
         </p>
         {QUICK_ACTIONS.map((action) => (
           <Button
